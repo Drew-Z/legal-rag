@@ -1,0 +1,13 @@
+node_modules
+dist
+*.tsbuildinfo
+.git
+.env
+.env.*
+.scratch
+apps/api/.env
+apps/api/dist
+apps/web/dist
+apps/web/node_modules
+artifacts
+resources

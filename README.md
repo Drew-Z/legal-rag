@@ -25,9 +25,9 @@
 - Web：Vue 3 + TypeScript + Vite
 - API：Node.js + Express + TypeScript
 - Shared：workspace package 共享类型
-- Vector store：Memory adapter
-- Model：Mock embedding provider，预留真实模型 provider
-- Future：PostgreSQL + pgvector、BullMQ、真实 embedding/chat model、模型 rerank
+- Vector store：Memory adapter / PostgreSQL + pgvector
+- Model：Mock provider / OpenAI-compatible chat + embedding provider
+- Database：PostgreSQL schema 自动迁移，支持项目空间、文档、chunks 和向量持久化
 
 ## 启动
 
@@ -89,6 +89,44 @@ DATABASE_URL=postgresql://postgres:你的密码@你的host:5432/postgres?sslmode
 `MODEL_PROVIDER=openai-compatible` 时，生成模型走 `LLM_*`，embedding 默认复用同一组 `LLM_*`；如果你给 `EMBEDDING_BASE_URL` 和 `EMBEDDING_API_KEY`，embedding 就会单独走那一组凭据。
 
 如果当前 token 没有 chat model 权限，系统会继续使用真实 embedding + pgvector 检索，并回退到本地可解释答案模板。
+
+## Docker 部署
+
+仓库提供生产演示用 Docker Compose：一个 PostgreSQL + pgvector、一个 API 容器、一个 Nginx 静态 Web 容器。默认配置使用 mock 模型 + pgvector，因此不需要密钥即可启动并验证持久化链路。
+
+```powershell
+Copy-Item .env.docker.example .env
+docker compose -f docker-compose.prod.yml up --build
+```
+
+如果你的网络访问 npm 官方源更稳定，可以在根目录 `.env` 中把 `NPM_CONFIG_REGISTRY` 改为 `https://registry.npmjs.org`。
+
+启动后访问：
+
+- Web: `http://localhost:8080`
+- API health: `http://localhost:8080/api/health`
+
+如需接入真实模型，在仓库根目录 `.env` 中改为：
+
+```text
+MODEL_PROVIDER=openai-compatible
+VECTOR_STORE=pgvector
+LLM_BASE_URL=https://你的模型网关/v1
+LLM_API_KEY=你的生成模型密钥
+LLM_MODEL=gemini-3.5-flash-thinking
+EMBEDDING_BASE_URL=https://你的embedding网关/v1
+EMBEDDING_API_KEY=你的embedding模型密钥
+EMBEDDING_MODEL=Qwen3-Embedding-0.6B
+EMBEDDING_DIM=1024
+```
+
+Compose 会自动把 API 的 `DATABASE_URL` 指向内置 Postgres 服务。API 启动时会自动创建 pgvector extension、projects、documents 和 chunks 表。
+
+注意：mock provider 使用 96 维向量，真实 `Qwen3-Embedding-0.6B` 配置使用 1024 维向量。切换 embedding 维度时，请使用新的数据库或重建 Docker volume：
+
+```powershell
+docker compose -f docker-compose.prod.yml down -v
+```
 
 ## API
 
@@ -287,8 +325,9 @@ npm.cmd run build
 
 ## 后续优化
 
-- 接入真实 embedding 和 chat model。
-- 增加 PostgreSQL + pgvector 持久化。
+- 增加登录鉴权和用户级项目空间权限。
+- 扩充真实合同数据集与脱敏样本治理流程。
+- 增加评测趋势、召回率、拒答准确率和审查召回率报表。
+- 增加 CI、镜像发布和云部署脚本。
 - 支持 OCR 和更复杂版式解析。
 - 引入专门 rerank 模型。
-- 扩展评测集，验证 citation 命中率、审查召回率和拒答准确率。
