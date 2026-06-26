@@ -611,9 +611,14 @@ textarea {
 }
 
 .quality-metrics,
-.check-list {
+.check-list,
+.eval-list {
   display: grid;
   gap: 10px;
+}
+
+.eval-panel {
+  grid-column: 1 / -1;
 }
 
 .quality-metrics {
@@ -621,7 +626,8 @@ textarea {
 }
 
 .quality-metrics article,
-.check-row {
+.check-row,
+.eval-row {
   padding: 12px;
   border: 1px solid #e0e8e9;
   border-radius: 8px;
@@ -630,7 +636,8 @@ textarea {
 
 .quality-metrics span,
 .quality-metrics small,
-.check-row p {
+.check-row p,
+.eval-row p {
   color: #62727a;
   font-size: 12px;
 }
@@ -642,16 +649,35 @@ textarea {
   font-size: 22px;
 }
 
-.check-row div {
+.check-row div,
+.eval-row div {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.check-row p {
+.check-row p,
+.eval-row p {
   margin: 8px 0 0;
   line-height: 1.5;
+}
+
+.eval-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 520px;
+  overflow: auto;
+}
+
+.eval-row small {
+  display: -webkit-box;
+  margin-top: 8px;
+  overflow: hidden;
+  color: #34454c;
+  font-size: 12px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .check-badge {
@@ -707,6 +733,10 @@ textarea {
   }
 
   .quality-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .eval-list {
     grid-template-columns: 1fr;
   }
 }

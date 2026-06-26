@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { RagAnswer } from "@legal-rag/shared";
+import type { EvaluationReport, EvaluationResult, RagAnswer } from "@legal-rag/shared";
 import { seedPublicSafeDataset } from "../datasets/dataset-service.js";
 import { DocumentIngestionService } from "../documents/ingestion-service.js";
 import { MockEmbeddingProvider } from "../embeddings/provider.js";
@@ -17,21 +17,13 @@ export interface EvalCase {
   expectedCitationHints: string[];
 }
 
-export interface EvalResult {
-  id: string;
-  passed: boolean;
-  reason: string;
-  citationText: string;
-  answer: string;
-}
-
 export interface EvalSummary {
   total: number;
   passed: number;
   failed: number;
   answerableCases: number;
   refusalCases: number;
-  results: EvalResult[];
+  results: EvaluationResult[];
 }
 
 const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -48,7 +40,7 @@ export async function runMockRagEvaluation(): Promise<EvalSummary> {
   await seedPublicSafeDataset(ingestion);
 
   const evalCases = await loadEvalCases();
-  const results: EvalResult[] = [];
+  const results: EvaluationResult[] = [];
 
   for (const item of evalCases) {
     const answer = await rag.answerQuestion(item.question, 5);
@@ -68,11 +60,25 @@ export async function runMockRagEvaluation(): Promise<EvalSummary> {
   };
 }
 
+export async function buildEvaluationReport(): Promise<EvaluationReport> {
+  const summary = await runMockRagEvaluation();
+
+  return {
+    generatedAt: new Date().toISOString(),
+    total: summary.total,
+    passed: summary.passed,
+    failed: summary.failed,
+    answerableCases: summary.answerableCases,
+    refusalCases: summary.refusalCases,
+    results: summary.results
+  };
+}
+
 export async function loadEvalCases(): Promise<EvalCase[]> {
   return JSON.parse(await readFile(EVAL_SET_PATH, "utf8")) as EvalCase[];
 }
 
-function evaluateAnswer(item: EvalCase, answer: RagAnswer): EvalResult {
+function evaluateAnswer(item: EvalCase, answer: RagAnswer): EvaluationResult {
   const citationText = answer.citations
     .map((citation) => `${citation.title} ${citation.section} ${citation.quote}`)
     .join("\n");

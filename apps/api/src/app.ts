@@ -12,6 +12,7 @@ import { parseUploadedDocument } from "./documents/parsers.js";
 import { cleanText } from "./documents/text.js";
 import type { EmbeddingProvider } from "./embeddings/provider.js";
 import { MockEmbeddingProvider } from "./embeddings/provider.js";
+import { buildEvaluationReport } from "./evaluation/eval-service.js";
 import {
   OpenAICompatibleChatProvider,
   OpenAICompatibleEmbeddingProvider,
@@ -52,6 +53,10 @@ export async function createApp(config: AppConfig) {
 
   app.get("/api/quality/report", async (_request, response) => {
     response.json(await buildQualityReport(config, repository));
+  });
+
+  app.get("/api/evaluation/report", async (_request, response) => {
+    response.json(await buildEvaluationReport());
   });
 
   app.get("/api/projects", async (_request, response) => {

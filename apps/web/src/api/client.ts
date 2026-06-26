@@ -1,6 +1,7 @@
 import type {
   ContractReviewResult,
   DocumentChunk,
+  EvaluationReport,
   LegalDocument,
   ProjectSpace,
   QualityReport,
@@ -49,6 +50,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<{ ok: boolean; modelProvider: string; vectorStore: string }>("/api/health"),
   qualityReport: () => request<QualityReport>("/api/quality/report"),
+  evaluationReport: () => request<EvaluationReport>("/api/evaluation/report"),
   listProjects: () => request<{ projects: ProjectSpace[] }>("/api/projects"),
   createProject: (name: string, description = "") =>
     request<CreateProjectResponse>("/api/projects", {

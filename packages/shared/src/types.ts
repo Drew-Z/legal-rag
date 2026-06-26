@@ -120,3 +120,21 @@ export interface QualityReport {
   };
   checks: QualityCheck[];
 }
+
+export interface EvaluationResult {
+  id: string;
+  passed: boolean;
+  reason: string;
+  citationText: string;
+  answer: string;
+}
+
+export interface EvaluationReport {
+  generatedAt: string;
+  total: number;
+  passed: number;
+  failed: number;
+  answerableCases: number;
+  refusalCases: number;
+  results: EvaluationResult[];
+}

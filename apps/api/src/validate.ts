@@ -40,6 +40,13 @@ try {
   assert(quality.eval.failed === 0, "expected quality eval to pass");
   assert(quality.checks.length > 0, "expected quality checks");
 
+  const evaluation = await getJson<{ total: number; passed: number; failed: number; results: unknown[] }>(
+    "/api/evaluation/report"
+  );
+  assert(evaluation.total > 0, "expected evaluation cases");
+  assert(evaluation.failed === 0, "expected evaluation report to pass");
+  assert(evaluation.results.length === evaluation.total, "expected detailed evaluation results");
+
   const createdProject = await postJson<{ project: { id: string; name: string } }>("/api/projects", {
     name: "validation workspace"
   });

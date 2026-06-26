@@ -4,6 +4,7 @@ import type {
   ContractReviewResult,
   ContractRisk,
   DocumentChunk,
+  EvaluationReport,
   LegalDocument,
   ProjectSpace,
   QualityReport,
@@ -37,6 +38,7 @@ const ragAnswer = ref<RagAnswer | null>(null);
 const qaHistory = ref<QaHistoryItem[]>([]);
 const reviewResult = ref<ContractReviewResult | null>(null);
 const qualityReport = ref<QualityReport | null>(null);
+const evaluationReport = ref<EvaluationReport | null>(null);
 const qualityLoading = ref(false);
 const apiStatus = ref("连接中");
 const busy = ref(false);
@@ -60,6 +62,7 @@ onMounted(async () => {
   await refreshProjects();
   await refreshDocuments();
   await loadQualityReport();
+  await loadEvaluationReport();
 });
 
 async function checkHealth() {
@@ -132,6 +135,27 @@ async function loadQualityReport() {
   qualityLoading.value = true;
   try {
     qualityReport.value = await api.qualityReport();
+  } catch (error) {
+    notice.value = error instanceof Error ? error.message : "质量报告加载失败";
+  } finally {
+    qualityLoading.value = false;
+  }
+}
+
+async function loadEvaluationReport() {
+  try {
+    evaluationReport.value = await api.evaluationReport();
+  } catch (error) {
+    notice.value = error instanceof Error ? error.message : "评测报告加载失败";
+  }
+}
+
+async function refreshQualityReports() {
+  qualityLoading.value = true;
+  try {
+    const [quality, evaluation] = await Promise.all([api.qualityReport(), api.evaluationReport()]);
+    qualityReport.value = quality;
+    evaluationReport.value = evaluation;
   } catch (error) {
     notice.value = error instanceof Error ? error.message : "质量报告加载失败";
   } finally {
@@ -594,7 +618,7 @@ function answerSourceLabel(source: AnswerSource) {
             </article>
           </div>
           <div v-else class="empty-state">点击刷新后显示运行时和评测摘要。</div>
-          <button class="primary" :disabled="qualityLoading" @click="loadQualityReport">
+          <button class="primary" :disabled="qualityLoading" @click="refreshQualityReports">
             {{ qualityLoading ? "刷新中" : "刷新质量报告" }}
           </button>
         </div>
@@ -614,6 +638,28 @@ function answerSourceLabel(source: AnswerSource) {
             </article>
           </div>
           <div v-else class="empty-state">质量报告会汇总真实模型、pgvector、语料和评测护栏。</div>
+        </div>
+
+        <div class="panel result-panel eval-panel">
+          <div class="panel-heading">
+            <h2>评测用例</h2>
+            <span v-if="evaluationReport">
+              {{ evaluationReport.passed }}/{{ evaluationReport.total }} 通过
+            </span>
+          </div>
+          <div v-if="evaluationReport" class="eval-list">
+            <article v-for="item in evaluationReport.results" :key="item.id" class="eval-row">
+              <div>
+                <strong>{{ item.id }}</strong>
+                <span :class="['check-badge', item.passed ? 'pass' : 'fail']">
+                  {{ item.passed ? "pass" : "fail" }}
+                </span>
+              </div>
+              <p>{{ item.reason }}</p>
+              <small>{{ item.answer }}</small>
+            </article>
+          </div>
+          <div v-else class="empty-state">评测报告会列出 citation 命中和拒答用例。</div>
         </div>
       </section>
     </main>
