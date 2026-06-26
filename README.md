@@ -80,6 +80,7 @@ AUTH_PASSWORD=
 AUTH_SESSION_SECRET=
 AUTH_SESSION_TTL_HOURS=8
 AUTH_COOKIE_SECURE=false
+AUTH_COOKIE_SAME_SITE=Lax
 ```
 
 默认使用 mock provider，不需要真实密钥。
@@ -109,9 +110,16 @@ AUTH_EMAIL=owner@example.com
 AUTH_PASSWORD=请填写强密码
 AUTH_SESSION_SECRET=至少16位的随机字符串
 AUTH_COOKIE_SECURE=false
+AUTH_COOKIE_SAME_SITE=Lax
 ```
 
-生产 HTTPS 部署时把 `AUTH_COOKIE_SECURE` 改为 `true`。
+生产 HTTPS 部署时把 `AUTH_COOKIE_SECURE` 改为 `true`。如果前端和 API 是不同站点或不同 Render 子域名，同时设置 `AUTH_COOKIE_SAME_SITE=None`。
+
+Web 前端支持单独配置线上 API 地址。本地开发可保持为空，继续使用 Vite `/api` proxy；Render Static Site 设置为 API Web Service 地址：
+
+```text
+VITE_API_BASE_URL=https://你的-api.onrender.com
+```
 
 如果当前 token 没有 chat model 权限，系统会继续使用真实 embedding + pgvector 检索，并回退到本地可解释答案模板。
 
@@ -152,6 +160,17 @@ Compose 会自动把 API 的 `DATABASE_URL` 指向内置 Postgres 服务。API �
 ```powershell
 docker compose -f docker-compose.prod.yml down -v
 ```
+
+## Render + Supabase 线上 Demo
+
+如果 PostgreSQL + pgvector 已经在 Supabase 托管，就不需要再额外使用 Aiven。推荐线上演示部署为：
+
+- API：Render Web Service，使用 `apps/api/Dockerfile`
+- Web：Render Static Site，设置 `VITE_API_BASE_URL`
+- Database：继续使用 Supabase PostgreSQL + pgvector，`DATABASE_URL` 带 `sslmode=require`
+- Auth：线上开启 `AUTH_ENABLED=true`，Render 双子域名场景设置 `AUTH_COOKIE_SECURE=true` 和 `AUTH_COOKIE_SAME_SITE=None`
+
+完整步骤见 `docs/deploy-render-supabase.md`。
 
 ## API
 

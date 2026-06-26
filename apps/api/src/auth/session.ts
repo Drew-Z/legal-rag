@@ -20,6 +20,7 @@ export class AuthService {
         name: "演示用户",
         cookieName: "legal_rag_session",
         secureCookie: false,
+        cookieSameSite: "Lax",
         sessionTtlHours: 8
       };
   }
@@ -95,7 +96,7 @@ export class AuthService {
       httpOnly: true,
       maxAgeSeconds,
       path: "/",
-      sameSite: "Lax",
+      sameSite: this.config.cookieSameSite,
       secure: this.config.secureCookie
     });
   }
@@ -105,7 +106,7 @@ export class AuthService {
       httpOnly: true,
       maxAgeSeconds: 0,
       path: "/",
-      sameSite: "Lax",
+      sameSite: this.config.cookieSameSite,
       secure: this.config.secureCookie
     });
   }

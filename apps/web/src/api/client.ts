@@ -32,9 +32,15 @@ export interface CreateProjectResponse {
   project: ProjectSpace;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") ?? "";
+
+function apiPath(path: string): string {
+  return `${API_BASE_URL}${path}`;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    credentials: "same-origin",
+  const response = await fetch(apiPath(path), {
+    credentials: API_BASE_URL ? "include" : "same-origin",
     headers: {
       "Content-Type": "application/json",
       ...options?.headers
@@ -115,7 +121,7 @@ function uploadRequest<T>(
     form.append("file", file);
 
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", path);
+    xhr.open("POST", apiPath(path));
     xhr.withCredentials = true;
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {

@@ -17,6 +17,7 @@ test("auth routes protect API routes when auth is enabled", async () => {
       sessionSecret: "session-secret-for-tests",
       cookieName: "legal_rag_session",
       secureCookie: false,
+      cookieSameSite: "Lax",
       sessionTtlHours: 1
     },
     embedding: {

@@ -14,6 +14,7 @@ export interface AppConfig {
     sessionSecret?: string;
     cookieName: string;
     secureCookie: boolean;
+    cookieSameSite: "Lax" | "Strict" | "None";
     sessionTtlHours: number;
   };
   llm?: {
@@ -76,6 +77,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): AppConfig {
 function parseAuthConfig(env: NodeJS.ProcessEnv): NonNullable<AppConfig["auth"]> {
   const enabled = env.AUTH_ENABLED === "true";
   const sessionTtlHours = Number(env.AUTH_SESSION_TTL_HOURS ?? 8);
+  const cookieSameSite = parseCookieSameSite(env.AUTH_COOKIE_SAME_SITE);
 
   if (!Number.isFinite(sessionTtlHours) || sessionTtlHours <= 0) {
     throw new Error("AUTH_SESSION_TTL_HOURS must be a positive number");
@@ -99,8 +101,21 @@ function parseAuthConfig(env: NodeJS.ProcessEnv): NonNullable<AppConfig["auth"]>
     sessionSecret: env.AUTH_SESSION_SECRET,
     cookieName: env.AUTH_COOKIE_NAME ?? "legal_rag_session",
     secureCookie: env.AUTH_COOKIE_SECURE === "true",
+    cookieSameSite,
     sessionTtlHours
   };
+}
+
+function parseCookieSameSite(value: string | undefined): "Lax" | "Strict" | "None" {
+  if (!value) {
+    return "Lax";
+  }
+
+  if (value === "Lax" || value === "Strict" || value === "None") {
+    return value;
+  }
+
+  throw new Error("AUTH_COOKIE_SAME_SITE must be one of Lax, Strict, or None");
 }
 
 function requiredModelConfig(env: NodeJS.ProcessEnv): NonNullable<AppConfig["llm"]> {

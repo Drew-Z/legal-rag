@@ -12,6 +12,7 @@ test("AuthService authenticates configured user and reads session cookie", () =>
     sessionSecret: "session-secret-for-tests",
     cookieName: "legal_rag_session",
     secureCookie: false,
+    cookieSameSite: "Lax",
     sessionTtlHours: 1
   });
 
@@ -40,6 +41,7 @@ test("AuthService rejects invalid credentials", () => {
     sessionSecret: "session-secret-for-tests",
     cookieName: "legal_rag_session",
     secureCookie: false,
+    cookieSameSite: "Lax",
     sessionTtlHours: 1
   });
 
@@ -56,6 +58,7 @@ test("requireAuth blocks protected routes when enabled without session", () => {
     sessionSecret: "session-secret-for-tests",
     cookieName: "legal_rag_session",
     secureCookie: false,
+    cookieSameSite: "Lax",
     sessionTtlHours: 1
   });
   const request = {
@@ -71,6 +74,27 @@ test("requireAuth blocks protected routes when enabled without session", () => {
   assert.equal(nextCalled, false);
   assert.equal(response.statusCode, 401);
   assert.deepEqual(response.body, { error: "authentication required" });
+});
+
+test("AuthService can issue cross-site secure cookies for hosted demos", () => {
+  const auth = new AuthService({
+    enabled: true,
+    email: "demo@example.test",
+    name: "Demo User",
+    password: "correct-password",
+    sessionSecret: "session-secret-for-tests",
+    cookieName: "legal_rag_session",
+    secureCookie: true,
+    cookieSameSite: "None",
+    sessionTtlHours: 1
+  });
+
+  const user = auth.authenticate("demo@example.test", "correct-password");
+  assert.ok(user);
+
+  const cookie = auth.createCookie(user);
+  assert.match(cookie, /SameSite=None/);
+  assert.match(cookie, /Secure/);
 });
 
 function createMockResponse() {

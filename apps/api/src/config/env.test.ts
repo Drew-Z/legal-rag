@@ -92,7 +92,8 @@ test("parseConfig enables optional single-user auth", () => {
     AUTH_NAME: "Owner",
     AUTH_PASSWORD: "correct-password",
     AUTH_SESSION_SECRET: "session-secret-for-tests",
-    AUTH_SESSION_TTL_HOURS: "12"
+    AUTH_SESSION_TTL_HOURS: "12",
+    AUTH_COOKIE_SAME_SITE: "None"
   });
 
   assert.equal(config.auth?.enabled, true);
@@ -101,6 +102,7 @@ test("parseConfig enables optional single-user auth", () => {
   assert.equal(config.auth?.password, "correct-password");
   assert.equal(config.auth?.sessionSecret, "session-secret-for-tests");
   assert.equal(config.auth?.sessionTtlHours, 12);
+  assert.equal(config.auth?.cookieSameSite, "None");
 });
 
 test("parseConfig rejects incomplete auth configuration", () => {
@@ -121,5 +123,15 @@ test("parseConfig rejects incomplete auth configuration", () => {
         AUTH_SESSION_SECRET: "short"
       }),
     /AUTH_SESSION_SECRET must be at least 16 characters/
+  );
+});
+
+test("parseConfig rejects invalid auth cookie SameSite mode", () => {
+  assert.throws(
+    () =>
+      parseConfig({
+        AUTH_COOKIE_SAME_SITE: "Loose"
+      }),
+    /AUTH_COOKIE_SAME_SITE must be one of Lax, Strict, or None/
   );
 });
