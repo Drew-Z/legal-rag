@@ -413,6 +413,12 @@ textarea {
   color: #724b13;
 }
 
+.api-wake {
+  border-left-color: #087c73;
+  background: #edf8f6;
+  color: #123b38;
+}
+
 .doc-list,
 .chunk-list,
 .risk-list,
@@ -797,5 +803,64 @@ textarea {
 
   .eval-list {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .sidebar {
+    gap: 16px;
+    padding: 18px 14px;
+  }
+
+  .nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nav button {
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+
+  .workspace {
+    padding: 18px 14px;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .panel-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  textarea {
+    min-height: 220px;
+  }
+
+  .topbar-actions .secondary,
+  .primary,
+  .secondary {
+    width: 100%;
+  }
+
+  .diagnostics {
+    grid-template-columns: 1fr;
+  }
+
+  .history-list button,
+  .chunk-row div,
+  .risk-title,
+  .risk-row footer,
+  .check-row div,
+  .eval-row div {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

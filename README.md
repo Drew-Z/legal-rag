@@ -2,20 +2,31 @@
 
 法律智能机器人与合同审查 RAG 应用，一个用于简历和面试演示的全栈 RAG 项目。
 
+![Legal RAG 问答与引用截图](docs/assets/screenshots/rag-citations-diagnostics.png)
+
 ## 线上 Demo
 
 - Web: `https://legal-rag-web.onrender.com`
 - API health: `https://legal-rag-api-9bki.onrender.com/api/health`
 - Demo 保护：线上环境启用单用户登录，登录账号和密码不提交到仓库。
 
-推荐演示流程：
+## 5 分钟演示路径
 
-1. 登录工作台。
-2. 创建或选择项目空间。
-3. 点击“初始化公开数据集”，写入 Supabase pgvector。
-4. 在智能问答页提问，观察 answer、citations 和 diagnostics。
-5. 在合同审查页提交合同文本，查看风险条款、风险等级、修改建议和引用。
-6. 打开质量面板，展示模型配置、pgvector 状态、知识库规模、RAG 评测和合同审查评测。
+1. `0:00-0:30` 登录工作台，说明线上 demo 使用单用户门禁保护模型 key、上传接口和数据库资源。
+2. `0:30-1:20` 进入知识库，初始化公开安全数据集，说明文档会被清洗、判重、chunk，并写入 Supabase pgvector。
+3. `1:20-2:30` 切到智能问答，提问“技术服务合同里，验收标准不明确会带来什么风险？”，展示 answer、citations、diagnostics。
+4. `2:30-3:40` 切到合同审查，运行示例合同审查，展示风险条款、风险等级、修改建议、引用和导出。
+5. `3:40-5:00` 打开质量面板，展示 `openai-compatible / pgvector`、知识库规模、RAG 评测、合同审查评测和 readiness checks。
+
+## 项目亮点截图
+
+| 知识库与入库 | RAG 引用与 diagnostics |
+| --- | --- |
+| ![知识库截图](docs/assets/screenshots/knowledge-base.png) | ![RAG 引用与 diagnostics 截图](docs/assets/screenshots/rag-citations-diagnostics.png) |
+
+| 合同审查 | pgvector health 与评测报告 |
+| --- | --- |
+| ![合同审查截图](docs/assets/screenshots/contract-review.png) | ![质量面板截图](docs/assets/screenshots/quality-panel.png) |
 
 ## 功能
 
@@ -52,14 +63,18 @@
 ## 架构概览
 
 ```mermaid
-flowchart LR
-  User["Browser User"] --> Web["Render Static Site\nVue 3 + Vite"]
-  Web -->|HTTPS API + cookie| API["Render Web Service\nExpress API"]
-  API --> Auth["Single-user login gate"]
-  API --> Model["OpenAI-compatible LLM\nGemini 3.5 Flash Thinking"]
-  API --> Embedding["OpenAI-compatible Embedding\nQwen3-Embedding-0.6B"]
-  API --> DB["Supabase PostgreSQL\npgvector"]
-  DB --> Chunks["projects / documents / chunks\n1024-dim vectors"]
+flowchart TB
+  Browser["Browser\nVue workbench"] -->|VITE_API_BASE_URL| API["Render Web Service\nExpress API"]
+  API --> Auth["HTTP-only cookie auth"]
+  API --> Ingest["Ingestion\nparse / clean / hash / chunk"]
+  API --> RAG["RAG pipeline\nrewrite / hybrid recall / rerank"]
+  API --> Review["Contract review\nrule-guided risk report"]
+  Ingest --> Embedding["Embedding provider\nQwen3-Embedding-0.6B"]
+  Embedding --> Store["Supabase PostgreSQL + pgvector\nprojects / documents / chunks / vectors"]
+  RAG --> Store
+  RAG --> LLM["OpenAI-compatible chat\nGemini 3.5 Flash Thinking"]
+  Review --> Store
+  API --> Quality["Quality panel\nRAG eval + review eval + readiness"]
 ```
 
 部署形态：
@@ -448,11 +463,11 @@ docker compose -f docker-compose.prod.yml config
 
 ## 架构说明
 
-详见 `docs/architecture.md`。
+详见 `docs/architecture.md`。领域词汇见 `CONTEXT.md`，关键架构决策见 `docs/adr/`。
 
 ## 演示脚本
 
-面试讲解材料见 `docs/interview-notes.md`，线上演示脚本见 `docs/demo-script.md`。
+面试讲解材料见 `docs/interview-notes.md`，线上演示脚本见 `docs/demo-script.md`，中英文简历描述见 `docs/resume-snippets.md`。
 
 ## 面试亮点
 

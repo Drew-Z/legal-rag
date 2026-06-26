@@ -13,17 +13,15 @@ import type {
   ReviewEvaluationReport
 } from "@legal-rag/shared";
 import { api } from "./api/client";
+import AppSidebar from "./components/AppSidebar.vue";
+import KnowledgeView from "./components/KnowledgeView.vue";
+import LoginPanel from "./components/LoginPanel.vue";
+import QaView from "./components/QaView.vue";
+import QualityView from "./components/QualityView.vue";
+import ReviewView from "./components/ReviewView.vue";
+import Topbar from "./components/Topbar.vue";
 import { sampleContract } from "./data/sampleContract";
-
-type View = "knowledge" | "qa" | "review" | "quality";
-type AnswerSource = NonNullable<RagAnswer["diagnostics"]>["answerSource"];
-
-interface QaHistoryItem {
-  id: string;
-  question: string;
-  answer: RagAnswer;
-  createdAt: string;
-}
+import type { QaHistoryItem, View } from "./types";
 
 const activeView = ref<View>("knowledge");
 const authStatus = ref<AuthStatus | null>(null);
@@ -48,6 +46,7 @@ const evaluationReport = ref<EvaluationReport | null>(null);
 const reviewEvaluationReport = ref<ReviewEvaluationReport | null>(null);
 const qualityLoading = ref(false);
 const apiStatus = ref("连接中");
+const apiWakeMessage = ref("");
 const busy = ref(false);
 const uploadProgress = ref(0);
 const notice = ref("");
@@ -67,7 +66,10 @@ const selectedChunk = computed(() =>
 );
 
 onMounted(async () => {
-  await checkHealth();
+  const healthy = await checkHealth();
+  if (!healthy) {
+    await waitForApiWake();
+  }
   await loadAuthStatus();
   if (!authRequired.value) {
     await bootstrapWorkspace();
@@ -82,12 +84,25 @@ async function bootstrapWorkspace() {
   await loadReviewEvaluationReport();
 }
 
-async function checkHealth() {
+async function checkHealth(): Promise<boolean> {
   try {
     const health = await api.health();
     apiStatus.value = `${health.modelProvider} / ${health.vectorStore}`;
+    apiWakeMessage.value = "";
+    return true;
   } catch {
-    apiStatus.value = "API 未连接";
+    apiStatus.value = "API 正在唤醒";
+    apiWakeMessage.value = "API 暂时不可用，Render 免费实例首次访问可能需要 30-60 秒唤醒。";
+    return false;
+  }
+}
+
+async function waitForApiWake() {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await sleep(3000);
+    if (await checkHealth()) {
+      return;
+    }
   }
 }
 
@@ -113,7 +128,7 @@ async function login() {
     loginPassword.value = "";
     await bootstrapWorkspace();
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : "登录失败";
+    notice.value = friendlyError(error, "登录失败");
   } finally {
     loginLoading.value = false;
   }
@@ -177,7 +192,7 @@ async function createProject() {
     await loadQualityReport();
     notice.value = `已创建项目：${result.project.name}`;
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : "创建项目失败";
+    notice.value = friendlyError(error, "创建项目失败");
   } finally {
     busy.value = false;
   }
@@ -198,7 +213,7 @@ async function loadQualityReport() {
   try {
     qualityReport.value = await api.qualityReport();
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : "质量报告加载失败";
+    notice.value = friendlyError(error, "质量报告加载失败");
   } finally {
     qualityLoading.value = false;
   }
@@ -208,7 +223,7 @@ async function loadEvaluationReport() {
   try {
     evaluationReport.value = await api.evaluationReport();
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : "评测报告加载失败";
+    notice.value = friendlyError(error, "评测报告加载失败");
   }
 }
 
@@ -216,7 +231,7 @@ async function loadReviewEvaluationReport() {
   try {
     reviewEvaluationReport.value = await api.reviewEvaluationReport();
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : "合同审查评测加载失败";
+    notice.value = friendlyError(error, "合同审查评测加载失败");
   }
 }
 
@@ -232,7 +247,7 @@ async function refreshQualityReports() {
     evaluationReport.value = evaluation;
     reviewEvaluationReport.value = reviewEvaluation;
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : "质量报告加载失败";
+    notice.value = friendlyError(error, "质量报告加载失败");
   } finally {
     qualityLoading.value = false;
   }
@@ -265,7 +280,7 @@ async function importDocument() {
     await selectDocument(result.documentId);
     activeView.value = "knowledge";
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : "导入失败";
+    notice.value = friendlyError(error, "导入失败");
   } finally {
     busy.value = false;
   }
@@ -282,7 +297,7 @@ async function seedDataset() {
       await selectDocument(result.documents[0].id);
     }
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : "初始化数据集失败";
+    notice.value = friendlyError(error, "初始化数据集失败");
   } finally {
     busy.value = false;
   }
@@ -310,7 +325,7 @@ async function uploadDocument(event: Event) {
     await selectDocument(result.documentId);
     activeView.value = "knowledge";
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : "上传失败";
+    notice.value = friendlyError(error, "上传失败");
   } finally {
     busy.value = false;
     uploadProgress.value = 0;
@@ -337,7 +352,7 @@ async function askQuestion() {
       await focusChunk(answer.retrievedChunks[0].documentId, answer.retrievedChunks[0].chunkIndex, false);
     }
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : "提问失败";
+    notice.value = friendlyError(error, "提问失败");
   } finally {
     busy.value = false;
   }
@@ -353,7 +368,7 @@ async function runReview() {
         : { projectId: selectedProjectId.value, text: text.value }
     );
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : "审查失败";
+    notice.value = friendlyError(error, "审查失败");
   } finally {
     busy.value = false;
   }
@@ -408,415 +423,119 @@ function chunkKey(documentId: string, chunkIndex: number) {
   return `${documentId}-chunk-${chunkIndex}`;
 }
 
-function answerSourceLabel(source: AnswerSource) {
-  const labels: Record<AnswerSource, string> = {
-    model: "真实模型",
-    fallback: "本地回退",
-    refusal: "资料不足"
-  };
+function friendlyError(error: unknown, fallback: string) {
+  if (!(error instanceof Error)) {
+    return fallback;
+  }
 
-  return labels[source];
+  if (/fetch|network|Upload failed|Failed to fetch/i.test(error.message)) {
+    return "API 暂时不可用，可能正在冷启动或网络不稳定，请稍后重试。";
+  }
+
+  if (/authentication required|invalid email or password/i.test(error.message)) {
+    return "登录信息无效或登录状态已过期，请重新登录。";
+  }
+
+  if (/model|LLM|EMBEDDING|API key|provider/i.test(error.message)) {
+    return "模型服务暂时不可用，请检查模型网关配置或稍后重试。";
+  }
+
+  if (/DATABASE|pgvector|postgres|connection/i.test(error.message)) {
+    return "知识库数据库暂时不可用，请检查 Supabase pgvector 连接状态。";
+  }
+
+  return error.message || fallback;
 }
 
-function formatPercent(value: number) {
-  return `${Math.round(value * 100)}%`;
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 </script>
 
 <template>
-  <div v-if="authRequired" class="login-shell">
-    <form class="login-panel" @submit.prevent="login">
-      <div class="brand login-brand">
-        <div class="brand-mark">LR</div>
-        <div>
-          <strong>Legal RAG</strong>
-          <span>合同审查工作台</span>
-        </div>
-      </div>
-      <label>
-        邮箱
-        <input v-model="loginEmail" autocomplete="username" />
-      </label>
-      <label>
-        密码
-        <input v-model="loginPassword" type="password" autocomplete="current-password" />
-      </label>
-      <button class="primary" :disabled="loginLoading">
-        {{ loginLoading ? "登录中" : "登录" }}
-      </button>
-      <p v-if="notice" class="notice">{{ notice }}</p>
-    </form>
-  </div>
+  <LoginPanel
+    v-if="authRequired"
+    v-model:login-email="loginEmail"
+    v-model:login-password="loginPassword"
+    :login-loading="loginLoading"
+    :notice="notice"
+    @login="login"
+  />
 
   <div v-else class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark">LR</div>
-        <div>
-          <strong>Legal RAG</strong>
-          <span>合同审查工作台</span>
-        </div>
-      </div>
-
-      <nav class="nav">
-        <button :class="{ active: activeView === 'knowledge' }" @click="activeView = 'knowledge'">
-          <span class="nav-icon">▦</span>
-          知识库
-        </button>
-        <button :class="{ active: activeView === 'qa' }" @click="activeView = 'qa'">
-          <span class="nav-icon">?</span>
-          智能问答
-        </button>
-        <button :class="{ active: activeView === 'review' }" @click="activeView = 'review'">
-          <span class="nav-icon">!</span>
-          合同审查
-        </button>
-        <button :class="{ active: activeView === 'quality' }" @click="activeView = 'quality'">
-          <span class="nav-icon">✓</span>
-          质量面板
-        </button>
-      </nav>
-
-      <div class="project-switcher">
-        <label>
-          项目空间
-          <select v-model="selectedProjectId" @change="changeProject">
-            <option v-for="project in projects" :key="project.id" :value="project.id">
-              {{ project.name }}
-            </option>
-          </select>
-        </label>
-        <div class="project-create">
-          <input v-model="projectName" placeholder="新建项目" @keyup.enter="createProject" />
-          <button :disabled="busy" @click="createProject">+</button>
-        </div>
-      </div>
-
-      <div class="status">
-        <span>API</span>
-        <strong>{{ apiStatus }}</strong>
-      </div>
-      <button v-if="authStatus?.enabled" class="logout-button" @click="logout">退出登录</button>
-    </aside>
+    <AppSidebar
+      v-model:active-view="activeView"
+      v-model:selected-project-id="selectedProjectId"
+      v-model:project-name="projectName"
+      :projects="projects"
+      :busy="busy"
+      :api-status="apiStatus"
+      :auth-enabled="authStatus?.enabled === true"
+      @change-project="changeProject"
+      @create-project="createProject"
+      @logout="logout"
+    />
 
     <main class="workspace">
-      <header class="topbar">
-        <div>
-          <h1>法律智能机器人与合同审查 RAG 应用</h1>
-          <p>{{ selectedProject?.name ?? "默认项目" }} · 导入公开安全数据、上传文档、查看引用依据，并导出结构化风险报告。</p>
-        </div>
-        <div class="topbar-actions">
-          <button class="secondary" :disabled="busy" @click="seedDataset">初始化公开数据集</button>
-          <button class="secondary" @click="text = sampleContract">填入示例合同</button>
-        </div>
-      </header>
+      <Topbar
+        :selected-project-name="selectedProject?.name ?? '默认项目'"
+        :busy="busy"
+        @seed-dataset="seedDataset"
+        @fill-sample="text = sampleContract"
+      />
 
+      <p v-if="apiWakeMessage" class="notice api-wake">{{ apiWakeMessage }}</p>
       <p v-if="notice" class="notice">{{ notice }}</p>
 
-      <section v-if="activeView === 'knowledge'" class="three-column">
-        <div class="panel import-panel">
-          <div class="panel-heading">
-            <h2>导入文档</h2>
-            <span>TXT / PDF / DOCX / 粘贴文本</span>
-          </div>
-          <label>
-            文档标题
-            <input v-model="title" placeholder="请输入文档标题" />
-          </label>
-          <div class="upload-box">
-            <input
-              id="file-upload"
-              class="file-input"
-              type="file"
-              accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              :disabled="busy"
-              @change="uploadDocument"
-            />
-            <label class="file-label" for="file-upload">上传文件并解析</label>
-            <div v-if="uploadProgress > 0" class="progress">
-              <span :style="{ width: `${uploadProgress}%` }"></span>
-            </div>
-          </div>
-          <label class="grow">
-            合同文本
-            <textarea v-model="text" placeholder="粘贴合同或法律文档文本" />
-          </label>
-          <button class="primary" :disabled="busy" @click="importDocument">导入并向量化</button>
-        </div>
+      <KnowledgeView
+        v-if="activeView === 'knowledge'"
+        v-model:title="title"
+        v-model:text="text"
+        v-model:selected-chunk-key="selectedChunkKey"
+        :documents="documents"
+        :chunks="chunks"
+        :selected-document="selectedDocument"
+        :selected-document-id="selectedDocumentId"
+        :selected-chunk="selectedChunk"
+        :busy="busy"
+        :upload-progress="uploadProgress"
+        @import-document="importDocument"
+        @upload-document="uploadDocument"
+        @select-document="selectDocument"
+      />
 
-        <div class="panel">
-          <div class="panel-heading">
-            <h2>文档列表</h2>
-            <span>{{ documents.length }} 份</span>
-          </div>
-          <div class="doc-list">
-            <button
-              v-for="document in documents"
-              :key="document.id"
-              :class="{ selected: selectedDocumentId === document.id }"
-              @click="selectDocument(document.id)"
-            >
-              <strong>{{ document.title }}</strong>
-              <span>{{ document.chunkCount }} chunks · {{ document.docType ?? document.sourceType }}</span>
-              <small>{{ document.sourceLabel ?? new Date(document.createdAt).toLocaleString() }}</small>
-            </button>
-          </div>
-        </div>
+      <QaView
+        v-if="activeView === 'qa'"
+        v-model:question="question"
+        :selected-document-title="selectedDocument?.title ?? '导入文档后提问'"
+        :rag-answer="ragAnswer"
+        :qa-history="qaHistory"
+        :busy="busy"
+        @ask-question="askQuestion"
+        @restore-history="restoreHistory"
+        @focus-citation="focusCitation"
+      />
 
-        <div class="panel">
-          <div class="panel-heading">
-            <h2>知识详情</h2>
-            <span>{{ chunks.length }} 条</span>
-          </div>
-          <div v-if="selectedDocument" class="document-detail">
-            <strong>{{ selectedDocument.title }}</strong>
-            <span>{{ selectedDocument.sourceLabel ?? selectedDocument.sourceType }}</span>
-            <a v-if="selectedDocument.sourceUrl?.startsWith('http')" :href="selectedDocument.sourceUrl" target="_blank">
-              查看公开来源
-            </a>
-            <code v-if="selectedDocument.contentHash">{{ selectedDocument.contentHash.slice(0, 16) }}</code>
-          </div>
-          <div v-if="selectedChunk" class="source-highlight">
-            <strong>{{ selectedChunk.section }}</strong>
-            <p>{{ selectedChunk.content }}</p>
-          </div>
-          <div class="chunk-list">
-            <article
-              v-for="chunk in chunks"
-              :id="chunkKey(chunk.documentId, chunk.chunkIndex)"
-              :key="chunk.id"
-              :class="['chunk-row', { focused: selectedChunkKey === chunkKey(chunk.documentId, chunk.chunkIndex) }]"
-              @click="selectedChunkKey = chunkKey(chunk.documentId, chunk.chunkIndex)"
-            >
-              <div>
-                <strong>#{{ chunk.chunkIndex + 1 }} {{ chunk.section }}</strong>
-                <span>page {{ chunk.page }} · {{ chunk.tokenEstimate }} tokens</span>
-              </div>
-              <p>{{ chunk.content }}</p>
-            </article>
-          </div>
-        </div>
-      </section>
+      <ReviewView
+        v-if="activeView === 'review'"
+        v-model:selected-document-id="selectedDocumentId"
+        :documents="documents"
+        :review-result="reviewResult"
+        :busy="busy"
+        @select-document="selectDocument"
+        @run-review="runReview"
+        @export-review="exportReview"
+        @focus-risk="focusRisk"
+      />
 
-      <section v-if="activeView === 'qa'" class="qa-layout">
-        <div class="panel">
-          <div class="panel-heading">
-            <h2>智能问答</h2>
-            <span>{{ selectedDocument?.title ?? "导入文档后提问" }}</span>
-          </div>
-          <label>
-            问题
-            <textarea v-model="question" class="question-box" placeholder="例如：违约责任是否合理？" />
-          </label>
-          <button class="primary" :disabled="busy" @click="askQuestion">提问</button>
-
-          <div class="history-list">
-            <h3>问答历史</h3>
-            <button v-for="item in qaHistory" :key="item.id" @click="restoreHistory(item)">
-              <strong>{{ item.question }}</strong>
-              <span>{{ new Date(item.createdAt).toLocaleTimeString() }}</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="panel result-panel">
-          <div class="panel-heading">
-            <h2>回答与引用来源</h2>
-            <span v-if="ragAnswer">{{ ragAnswer.retrievedChunks.length }} 个命中片段</span>
-          </div>
-          <div v-if="ragAnswer" class="answer">
-            <p>{{ ragAnswer.answer }}</p>
-            <div class="diagnostics" v-if="ragAnswer.diagnostics">
-              <span :class="['answer-source', ragAnswer.diagnostics.answerSource]">
-                {{ answerSourceLabel(ragAnswer.diagnostics.answerSource) }}
-              </span>
-              <span>向量 {{ ragAnswer.diagnostics.vectorCandidates }}</span>
-              <span>关键词 {{ ragAnswer.diagnostics.keywordCandidates }}</span>
-              <span>过滤 {{ ragAnswer.diagnostics.filteredCandidates }}</span>
-              <span>重排 {{ ragAnswer.diagnostics.rerankedCandidates }}</span>
-            </div>
-            <h3>引用来源</h3>
-            <article v-for="citation in ragAnswer.citations" :key="`${citation.documentId}-${citation.chunkIndex}`">
-              <button class="source-button" @click="focusCitation(citation.documentId, citation.chunkIndex)">
-                {{ citation.title }} · {{ citation.section }}
-              </button>
-              <span>chunk {{ citation.chunkIndex + 1 }}</span>
-              <p>{{ citation.quote }}</p>
-            </article>
-          </div>
-          <div v-else class="empty-state">输入问题后，这里会显示 answer、citations 和 retrieved chunks。</div>
-        </div>
-      </section>
-
-      <section v-if="activeView === 'review'" class="review-layout">
-        <div class="panel">
-          <div class="panel-heading">
-            <h2>合同审查</h2>
-            <span>结构化风险报告</span>
-          </div>
-          <label>
-            选择文档
-            <select v-model="selectedDocumentId" @change="selectDocument(selectedDocumentId)">
-              <option value="">使用粘贴文本</option>
-              <option v-for="document in documents" :key="document.id" :value="document.id">
-                {{ document.title }}
-              </option>
-            </select>
-          </label>
-          <button class="primary" :disabled="busy" @click="runReview">开始审查</button>
-          <div class="export-actions">
-            <button class="secondary" :disabled="!reviewResult" @click="exportReview('markdown')">导出 Markdown</button>
-            <button class="secondary" :disabled="!reviewResult" @click="exportReview('json')">导出 JSON</button>
-          </div>
-        </div>
-
-        <div class="panel result-panel">
-          <div class="panel-heading">
-            <h2>风险列表</h2>
-            <span v-if="reviewResult">{{ reviewResult.risks.length }} 项</span>
-          </div>
-          <div v-if="reviewResult" class="risk-list">
-            <article v-for="risk in reviewResult.risks" :key="risk.clause" class="risk-row">
-              <div class="risk-title">
-                <button class="risk-link" @click="focusRisk(risk)">{{ risk.clause }}</button>
-                <span :class="['risk-badge', risk.riskLevel]">{{ risk.riskLevel }}</span>
-              </div>
-              <p>{{ risk.issue }}</p>
-              <p><b>修改建议：</b>{{ risk.suggestion }}</p>
-              <footer>
-                {{ risk.citation.section }} · chunk {{ risk.citation.chunkIndex + 1 }}
-                <span v-if="risk.requiresHumanReview">建议人工复核</span>
-              </footer>
-            </article>
-          </div>
-          <div v-else class="empty-state">选择已导入文档或使用粘贴文本，点击开始审查。</div>
-        </div>
-      </section>
-
-      <section v-if="activeView === 'quality'" class="quality-layout">
-        <div class="panel">
-          <div class="panel-heading">
-            <h2>运行时状态</h2>
-            <span v-if="qualityReport">{{ new Date(qualityReport.generatedAt).toLocaleString() }}</span>
-          </div>
-          <div v-if="qualityReport" class="quality-metrics">
-            <article>
-              <span>模型提供商</span>
-              <strong>{{ qualityReport.runtime.modelProvider }}</strong>
-              <small>{{ qualityReport.runtime.chatModel ?? "mock answer" }}</small>
-            </article>
-            <article>
-              <span>向量库</span>
-              <strong>{{ qualityReport.runtime.vectorStore }}</strong>
-              <small>{{ qualityReport.runtime.embeddingModel }}</small>
-            </article>
-            <article>
-              <span>知识库</span>
-              <strong>{{ qualityReport.runtime.documentCount }} 份</strong>
-              <small>{{ qualityReport.runtime.chunkCount }} chunks</small>
-            </article>
-            <article>
-              <span>评测通过率</span>
-              <strong>{{ qualityReport.eval.passed }}/{{ qualityReport.eval.total }}</strong>
-              <small>{{ qualityReport.eval.answerableCases }} 可答 · {{ qualityReport.eval.refusalCases }} 拒答</small>
-            </article>
-            <article>
-              <span>Citation 命中率</span>
-              <strong>{{ formatPercent(qualityReport.eval.citationAccuracy) }}</strong>
-              <small>可回答用例的引用命中</small>
-            </article>
-            <article>
-              <span>可回答准确率</span>
-              <strong>{{ formatPercent(qualityReport.eval.answerableAccuracy) }}</strong>
-              <small>回答且引用正确</small>
-            </article>
-            <article>
-              <span>拒答准确率</span>
-              <strong>{{ formatPercent(qualityReport.eval.refusalAccuracy) }}</strong>
-              <small>越界问题无引用拒答</small>
-            </article>
-            <article>
-              <span>审查召回率</span>
-              <strong>{{ formatPercent(qualityReport.reviewEval.recall) }}</strong>
-              <small>{{ qualityReport.reviewEval.matchedRiskCount }}/{{ qualityReport.reviewEval.expectedRiskCount }} 个风险命中</small>
-            </article>
-          </div>
-          <div v-else class="empty-state">点击刷新后显示运行时和评测摘要。</div>
-          <button class="primary" :disabled="qualityLoading" @click="refreshQualityReports">
-            {{ qualityLoading ? "刷新中" : "刷新质量报告" }}
-          </button>
-        </div>
-
-        <div class="panel result-panel">
-          <div class="panel-heading">
-            <h2>Readiness Checks</h2>
-            <span v-if="qualityReport">{{ qualityReport.checks.length }} 项</span>
-          </div>
-          <div v-if="qualityReport" class="check-list">
-            <article v-for="check in qualityReport.checks" :key="check.id" class="check-row">
-              <div>
-                <strong>{{ check.label }}</strong>
-                <span :class="['check-badge', check.status]">{{ check.status }}</span>
-              </div>
-              <p>{{ check.detail }}</p>
-            </article>
-          </div>
-          <div v-else class="empty-state">质量报告会汇总真实模型、pgvector、语料和评测护栏。</div>
-        </div>
-
-        <div class="panel result-panel eval-panel">
-          <div class="panel-heading">
-            <h2>评测用例</h2>
-            <span v-if="evaluationReport">
-              {{ evaluationReport.passed }}/{{ evaluationReport.total }} 通过
-            </span>
-          </div>
-          <div v-if="evaluationReport" class="eval-list">
-            <article v-for="item in evaluationReport.results" :key="item.id" class="eval-row">
-              <div>
-                <strong>{{ item.id }}</strong>
-                <span :class="['check-badge', item.passed ? 'pass' : 'fail']">
-                  {{ item.passed ? "pass" : "fail" }}
-                </span>
-              </div>
-              <div class="eval-meta">
-                <span>{{ item.kind }}</span>
-                <span>{{ item.expectedTopic }}</span>
-                <span>{{ item.kind === "answerable" ? (item.citationHit ? "citation hit" : "citation miss") : (item.refused ? "refused" : "not refused") }}</span>
-              </div>
-              <p>{{ item.reason }}</p>
-              <small>{{ item.answer }}</small>
-            </article>
-          </div>
-          <div v-else class="empty-state">评测报告会列出 citation 命中和拒答用例。</div>
-        </div>
-
-        <div class="panel result-panel eval-panel">
-          <div class="panel-heading">
-            <h2>合同审查用例</h2>
-            <span v-if="reviewEvaluationReport">
-              {{ reviewEvaluationReport.passed }}/{{ reviewEvaluationReport.total }} 通过
-            </span>
-          </div>
-          <div v-if="reviewEvaluationReport" class="eval-list">
-            <article v-for="item in reviewEvaluationReport.results" :key="item.id" class="eval-row">
-              <div>
-                <strong>{{ item.title }}</strong>
-                <span :class="['check-badge', item.passed ? 'pass' : 'fail']">
-                  {{ item.passed ? "pass" : "fail" }}
-                </span>
-              </div>
-              <div class="eval-meta">
-                <span>expected {{ item.expectedRisks.join(" / ") }}</span>
-                <span>matched {{ item.matchedRisks.join(" / ") || "none" }}</span>
-              </div>
-              <p v-if="item.missingRisks.length > 0">缺失：{{ item.missingRisks.join("、") }}</p>
-              <small>{{ item.actualRisks.join("、") || "未识别风险" }}</small>
-            </article>
-          </div>
-          <div v-else class="empty-state">合同审查评测会列出标注风险的命中情况。</div>
-        </div>
-      </section>
+      <QualityView
+        v-if="activeView === 'quality'"
+        :quality-report="qualityReport"
+        :evaluation-report="evaluationReport"
+        :review-evaluation-report="reviewEvaluationReport"
+        :quality-loading="qualityLoading"
+        @refresh-quality-reports="refreshQualityReports"
+      />
     </main>
   </div>
 </template>

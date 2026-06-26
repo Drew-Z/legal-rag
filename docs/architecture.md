@@ -1,28 +1,51 @@
 # Architecture
 
-Legal RAG is a small monorepo that demonstrates a complete legal-document RAG loop without requiring a live model key.
+Legal RAG is a deployed monorepo that demonstrates a complete legal-document RAG loop. Local development can run without a live model key, while the hosted demo uses Render, Supabase PostgreSQL + pgvector, and OpenAI-compatible model gateways.
+
+```mermaid
+flowchart TB
+  subgraph Client["Client"]
+    Web["Vue 3 + Vite workbench\nknowledge / QA / review / quality"]
+  end
+
+  subgraph Render["Render"]
+    Static["Static Site\nlegal-rag-web"]
+    API["Web Service\nExpress API Docker image"]
+  end
+
+  subgraph Providers["External providers"]
+    LLM["OpenAI-compatible chat\nGemini 3.5 Flash Thinking"]
+    Embed["OpenAI-compatible embedding\nQwen3-Embedding-0.6B"]
+    Supabase["Supabase PostgreSQL\npgvector"]
+  end
+
+  Web --> Static
+  Static -->|HTTPS + credentials| API
+  API -->|signed HTTP-only cookie| Auth["single-user auth gate"]
+  API -->|chat completion| LLM
+  API -->|1024-dim vectors| Embed
+  API -->|documents / chunks / vectors| Supabase
+```
+
+## RAG Pipeline
 
 ```mermaid
 flowchart LR
-  Web["Vue Web App"] --> API["Express API"]
-  API --> Auth["optional single-user auth gate"]
-  API --> Projects["projects: workspace isolation"]
-  API --> Upload["upload: TXT/PDF/DOCX parsers"]
-  API --> Dataset["public-safe dataset seed"]
-  Upload --> Documents["documents: clean and store"]
-  Dataset --> Documents
-  Projects --> Documents
-  Documents --> Hash["hash: duplicate detection"]
-  Hash --> Chunks["chunks: section-aware splitter"]
-  Chunks --> Embeddings["embeddings: provider adapter"]
-  Embeddings --> VectorStore["vector store: memory or pgvector"]
-  VectorStore --> Rewrite["query rewrite"]
-  Rewrite --> Hybrid["hybrid recall: vector + keyword"]
-  Hybrid --> Rerank["threshold filter + rerank"]
-  Rerank --> Rag["rag: grounded answer"]
-  Chunks --> Review["review: rule-guided risk report"]
-  Rag --> Citations["citations: source quotes"]
-  Review --> Citations
+  Input["Text / TXT / PDF / DOCX / dataset"] --> Clean["clean text"]
+  Clean --> Hash["project-scoped SHA-256 dedupe"]
+  Hash --> Chunk["section-aware chunking"]
+  Chunk --> Embed["embedding provider"]
+  Embed --> Store["memory or pgvector"]
+  Question["user question"] --> Rewrite["contextual rewrite"]
+  Rewrite --> QueryEmbed["query embedding"]
+  QueryEmbed --> Vector["vector recall"]
+  Rewrite --> Keyword["keyword recall"]
+  Vector --> Merge["merge candidates"]
+  Keyword --> Merge
+  Merge --> Filter["similarity + keyword threshold"]
+  Filter --> Rerank["lightweight rerank"]
+  Rerank --> Answer["grounded answer or refusal"]
+  Answer --> Citations["citations + diagnostics"]
 ```
 
 ## Runtime

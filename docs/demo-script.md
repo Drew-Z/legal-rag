@@ -29,6 +29,17 @@ https://legal-rag-web.onrender.com
 
 3. 如果 Render 免费实例冷启动，先等待 API health 返回成功，再开始演示。
 
+也可以用前端 smoke 脚本检查线上登录和 health。账号密码通过环境变量提供，不要写入仓库：
+
+```powershell
+$env:WEB_E2E_BASE_URL="https://legal-rag-web.onrender.com"
+$env:WEB_E2E_HEALTH_URL="https://legal-rag-api-9bki.onrender.com/api/health"
+$env:WEB_E2E_EMAIL="<demo-email>"
+$env:WEB_E2E_PASSWORD="<demo-password>"
+$env:PLAYWRIGHT_CHROMIUM_EXECUTABLE="C:/Program Files/Google/Chrome/Application/chrome.exe"
+npm.cmd --workspace apps/web run test:e2e:smoke
+```
+
 ## 90 秒演示
 
 1. 登录工作台。
@@ -96,4 +107,3 @@ API health 慢：
 
 - 先看 `/api/health` 是否返回 `vectorStore=pgvector`。
 - 再看 Render API logs 是否有模型 key、embedding 维度或 Supabase 连接错误。
-
