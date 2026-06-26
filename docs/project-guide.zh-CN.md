@@ -41,6 +41,7 @@ Legal RAG 是一个法律文档问答与合同风险审查应用。项目目标�
 - `CONTEXT.md` 记录领域词汇，`docs/adr/` 记录 Render、Supabase、provider/vector store、单用户 auth 和质量趋势持久化等决策。
 - CI 覆盖 typecheck、unit test、validate、RAG eval、contract review eval、build 和 Docker Compose 配置检查。
 - 质量趋势已经设计为 `Evaluation Run`，本地 memory 模式记录进程内趋势，pgvector 模式写入 PostgreSQL `evaluation_runs` 表。
+- 项目级 `Audit Log` 已经记录项目创建、文档导入/上传、公开数据集初始化、RAG 问答和合同审查，为后续多用户授权、项目治理和操作追溯铺底。
 
 ## 线上演示路径
 
@@ -121,6 +122,7 @@ Supabase 已经承担 PostgreSQL + pgvector 职责，不需要再额外接入 Ai
 - 项目级角色权限。
 - 每个请求解析当前用户和授权项目空间。
 - 审计日志，记录导入、上传、问答和审查操作。
+- 后续可以在已有 Audit Log 基础上增加用户表、项目成员表和角色校验。
 
 这会让项目从 demo 更接近真实 SaaS 产品。
 

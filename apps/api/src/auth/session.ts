@@ -114,7 +114,9 @@ export class AuthService {
 
 export function requireAuth(auth: AuthService) {
   return (request: Request, response: Response, next: NextFunction) => {
-    if (!auth.enabled || auth.getUserFromRequest(request)) {
+    const user = auth.getUserFromRequest(request);
+    if (!auth.enabled || user) {
+      (request as Request & { authUser?: AuthUser }).authUser = user ?? auth.publicUser;
       next();
       return;
     }

@@ -1,4 +1,4 @@
-import type { DocumentChunk, LegalDocument, ProjectSpace } from "@legal-rag/shared";
+import type { AuditLogEntry, DocumentChunk, LegalDocument, ProjectSpace } from "@legal-rag/shared";
 import type { Queryable } from "../db/pool.js";
 import { DEFAULT_PROJECT } from "./repository.js";
 import type { DocumentRepository } from "./repository.js";
@@ -23,6 +23,40 @@ export class PgRepository implements DocumentRepository {
   async listProjects(): Promise<ProjectSpace[]> {
     const result = await this.db.query("SELECT * FROM projects ORDER BY is_default DESC, created_at DESC");
     return result.rows.map(rowToProject);
+  }
+
+  async recordAuditLog(entry: AuditLogEntry): Promise<void> {
+    await this.db.query(
+      `
+      INSERT INTO audit_logs (
+        id, project_id, user_email, action, target_type, target_id, summary, created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ON CONFLICT (id) DO NOTHING
+      `,
+      [
+        entry.id,
+        entry.projectId,
+        entry.userEmail,
+        entry.action,
+        entry.targetType,
+        entry.targetId,
+        entry.summary,
+        entry.createdAt
+      ]
+    );
+  }
+
+  async listAuditLogs(projectId?: string, limit = 50): Promise<AuditLogEntry[]> {
+    const safeLimit = Math.max(1, Math.min(limit, 100));
+    const result = projectId
+      ? await this.db.query(
+          "SELECT * FROM audit_logs WHERE project_id = $1 ORDER BY created_at DESC LIMIT $2",
+          [projectId, safeLimit]
+        )
+      : await this.db.query("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT $1", [safeLimit]);
+
+    return result.rows.map(rowToAuditLog);
   }
 
   async addDocument(document: LegalDocument, _chunks: DocumentChunk[] = []): Promise<void> {
@@ -112,6 +146,19 @@ function rowToProject(row: Record<string, unknown>): ProjectSpace {
     description: optionalString(row.description),
     createdAt: toIsoString(row.created_at),
     isDefault: Boolean(row.is_default)
+  };
+}
+
+function rowToAuditLog(row: Record<string, unknown>): AuditLogEntry {
+  return {
+    id: String(row.id),
+    projectId: optionalString(row.project_id),
+    userEmail: String(row.user_email),
+    action: row.action as AuditLogEntry["action"],
+    targetType: row.target_type as AuditLogEntry["targetType"] | undefined,
+    targetId: optionalString(row.target_id),
+    summary: String(row.summary),
+    createdAt: toIsoString(row.created_at)
   };
 }
 

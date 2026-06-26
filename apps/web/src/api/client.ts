@@ -1,5 +1,6 @@
 import type {
   AuthStatus,
+  AuditLogEntry,
   ContractReviewResult,
   DocumentChunk,
   EvaluationReport,
@@ -74,6 +75,10 @@ export const api = {
   qualityTrends: () => request<QualityTrendReport>("/api/quality/trends"),
   evaluationReport: () => request<EvaluationReport>("/api/evaluation/report"),
   reviewEvaluationReport: () => request<ReviewEvaluationReport>("/api/review/evaluation/report"),
+  auditLogs: (projectId?: string) =>
+    request<{ logs: AuditLogEntry[] }>(
+      projectId ? `/api/audit-logs?projectId=${encodeURIComponent(projectId)}` : "/api/audit-logs"
+    ),
   listProjects: () => request<{ projects: ProjectSpace[] }>("/api/projects"),
   createProject: (name: string, description = "") =>
     request<CreateProjectResponse>("/api/projects", {

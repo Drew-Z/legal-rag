@@ -1,4 +1,4 @@
-import type { DocumentChunk, LegalDocument, ProjectSpace } from "@legal-rag/shared";
+import type { AuditLogEntry, DocumentChunk, LegalDocument, ProjectSpace } from "@legal-rag/shared";
 
 export const DEFAULT_PROJECT_ID = "project_default";
 export const DEFAULT_PROJECT: ProjectSpace = {
@@ -12,6 +12,8 @@ export const DEFAULT_PROJECT: ProjectSpace = {
 export interface DocumentRepository {
   addProject(project: ProjectSpace): void | Promise<void>;
   listProjects(): ProjectSpace[] | Promise<ProjectSpace[]>;
+  recordAuditLog(entry: AuditLogEntry): void | Promise<void>;
+  listAuditLogs(projectId?: string, limit?: number): AuditLogEntry[] | Promise<AuditLogEntry[]>;
   addDocument(document: LegalDocument, chunks: DocumentChunk[]): void | Promise<void>;
   listDocuments(projectId?: string): LegalDocument[] | Promise<LegalDocument[]>;
   getDocument(id: string): LegalDocument | undefined | Promise<LegalDocument | undefined>;
@@ -28,6 +30,7 @@ export class Repository implements DocumentRepository {
   private readonly documents = new Map<string, LegalDocument>();
   private readonly documentIdByHash = new Map<string, string>();
   private readonly chunksByDocument = new Map<string, DocumentChunk[]>();
+  private readonly auditLogs: AuditLogEntry[] = [];
 
   addProject(project: ProjectSpace): void {
     this.projects.set(project.id, project);
@@ -43,6 +46,16 @@ export class Repository implements DocumentRepository {
       }
       return right.createdAt.localeCompare(left.createdAt);
     });
+  }
+
+  recordAuditLog(entry: AuditLogEntry): void {
+    this.auditLogs.unshift(entry);
+    this.auditLogs.splice(200);
+  }
+
+  listAuditLogs(projectId?: string, limit = 50): AuditLogEntry[] {
+    const safeLimit = Math.max(1, Math.min(limit, 100));
+    return this.auditLogs.filter((entry) => !projectId || entry.projectId === projectId).slice(0, safeLimit);
   }
 
   addDocument(document: LegalDocument, chunks: DocumentChunk[]): void {

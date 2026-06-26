@@ -13,6 +13,7 @@ This repository is a single-context project for a legal-document RAG demo and co
 - **Contract Risk**: A structured review finding with clause, risk level, issue, suggestion, citation, and human-review flag.
 - **Quality Report**: Runtime and evaluation summary shown in the quality panel: model provider, vector store, corpus size, RAG evaluation, contract-review evaluation, and readiness checks.
 - **Evaluation Run**: A persisted quality report snapshot used to compare RAG and contract-review metrics over time.
+- **Audit Log**: A persisted project-space event recording the acting user, action, target, summary, and timestamp for sensitive operations.
 
 ## Runtime Modes
 
@@ -23,5 +24,6 @@ This repository is a single-context project for a legal-document RAG demo and co
 
 - Legal answers must be citation-grounded or refuse when current materials are insufficient.
 - Uploaded or seeded documents must be scoped to a project space.
+- Project-space mutations and AI actions should record audit logs so future multi-user authorization can be reviewed.
 - Model keys, database credentials, and demo login credentials must never be committed.
 - Hosted auth is intentionally single-user until multi-user authorization is designed.

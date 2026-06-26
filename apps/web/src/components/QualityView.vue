@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import type { EvaluationReport, QualityReport, QualityTrendReport, ReviewEvaluationReport } from "@legal-rag/shared";
+import type {
+  AuditLogEntry,
+  EvaluationReport,
+  QualityReport,
+  QualityTrendReport,
+  ReviewEvaluationReport
+} from "@legal-rag/shared";
 
 defineProps<{
   qualityReport: QualityReport | null;
   qualityTrendReport: QualityTrendReport | null;
   evaluationReport: EvaluationReport | null;
   reviewEvaluationReport: ReviewEvaluationReport | null;
+  auditLogs: AuditLogEntry[];
   qualityLoading: boolean;
 }>();
 
@@ -112,6 +119,24 @@ function formatPercent(value: number) {
         </article>
       </div>
       <div v-else class="empty-state">刷新质量报告后，这里会保留最近的评测趋势。</div>
+    </div>
+
+    <div class="panel result-panel eval-panel audit-panel">
+      <div class="panel-heading">
+        <h2>审计日志</h2>
+        <span>{{ auditLogs.length }} 条</span>
+      </div>
+      <div v-if="auditLogs.length > 0" class="audit-list">
+        <article v-for="entry in auditLogs" :key="entry.id" class="audit-row">
+          <div>
+            <strong>{{ entry.action }}</strong>
+            <span>{{ new Date(entry.createdAt).toLocaleString() }}</span>
+          </div>
+          <p>{{ entry.summary }}</p>
+          <small>{{ entry.userEmail }} · {{ entry.targetType ?? "project" }}{{ entry.targetId ? ` / ${entry.targetId}` : "" }}</small>
+        </article>
+      </div>
+      <div v-else class="empty-state">项目创建、导入、问答和审查后会显示最近操作记录。</div>
     </div>
 
     <div class="panel result-panel eval-panel">

@@ -663,7 +663,8 @@ textarea {
 .quality-metrics,
 .check-list,
 .eval-list,
-.trend-list {
+.trend-list,
+.audit-list {
   display: grid;
   gap: 10px;
 }
@@ -679,7 +680,8 @@ textarea {
 .quality-metrics article,
 .check-row,
 .eval-row,
-.trend-row {
+.trend-row,
+.audit-row {
   padding: 12px;
   border: 1px solid #e0e8e9;
   border-radius: 8px;
@@ -690,7 +692,8 @@ textarea {
 .quality-metrics small,
 .check-row p,
 .eval-row p,
-.trend-row > div > span {
+.trend-row > div > span,
+.audit-row > div > span {
   color: #62727a;
   font-size: 12px;
 }
@@ -704,7 +707,8 @@ textarea {
 
 .check-row div,
 .eval-row div,
-.trend-row div {
+.trend-row div,
+.audit-row div {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -731,12 +735,14 @@ textarea {
   min-height: 220px;
 }
 
-.trend-row {
+.trend-row,
+.audit-row {
   display: grid;
   gap: 10px;
 }
 
-.trend-row strong {
+.trend-row strong,
+.audit-row strong {
   color: #17212b;
 }
 
@@ -746,9 +752,25 @@ textarea {
 }
 
 .check-row p,
-.eval-row p {
+.eval-row p,
+.audit-row p {
   margin: 8px 0 0;
   line-height: 1.5;
+}
+
+.audit-panel {
+  min-height: 220px;
+}
+
+.audit-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 360px;
+  overflow: auto;
+}
+
+.audit-row small {
+  color: #62727a;
+  font-size: 12px;
 }
 
 .eval-list {
@@ -827,6 +849,10 @@ textarea {
   .eval-list {
     grid-template-columns: 1fr;
   }
+
+  .audit-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -882,8 +908,9 @@ textarea {
   .risk-title,
   .risk-row footer,
   .check-row div,
-  .eval-row div,
-  .trend-row div {
+    .eval-row div,
+    .trend-row div,
+    .audit-row div {
     align-items: flex-start;
     flex-direction: column;
   }

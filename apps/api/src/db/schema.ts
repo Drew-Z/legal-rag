@@ -79,5 +79,19 @@ CREATE TABLE IF NOT EXISTS evaluation_runs (
 );
 
 CREATE INDEX IF NOT EXISTS evaluation_runs_generated_at_idx ON evaluation_runs(generated_at DESC);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id text PRIMARY KEY,
+  project_id text REFERENCES projects(id) ON DELETE SET NULL,
+  user_email text NOT NULL,
+  action text NOT NULL,
+  target_type text,
+  target_id text,
+  summary text NOT NULL,
+  created_at timestamptz NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS audit_logs_project_created_at_idx ON audit_logs(project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS audit_logs_created_at_idx ON audit_logs(created_at DESC);
 `;
 }

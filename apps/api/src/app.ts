@@ -2,6 +2,7 @@ import cors from "cors";
 import express, { type Request, type Response } from "express";
 import multer from "multer";
 import type { AuthStatus, ProjectSpace } from "@legal-rag/shared";
+import { recordAuditLog } from "./audit/audit-log.js";
 import { AuthService, requireAuth } from "./auth/session.js";
 import { splitIntoChunks } from "./chunks/splitter.js";
 import type { AppConfig } from "./config/env.js";
@@ -105,6 +106,21 @@ export async function createApp(config: AppConfig) {
     response.json(await buildReviewEvaluationReport());
   });
 
+  app.get("/api/audit-logs", async (request, response) => {
+    const rawProjectId = request.query.projectId ? String(request.query.projectId).trim() : "";
+    const projectId = rawProjectId || undefined;
+    if (projectId) {
+      const projects = await repository.listProjects();
+      if (!projects.some((project) => project.id === projectId)) {
+        response.status(404).json({ error: "project not found" });
+        return;
+      }
+    }
+
+    const limit = Math.max(1, Math.min(Number(request.query.limit ?? 50), 100));
+    response.json({ logs: await repository.listAuditLogs(projectId, limit) });
+  });
+
   app.get("/api/projects", async (_request, response) => {
     response.json({ projects: await repository.listProjects() });
   });
@@ -125,6 +141,13 @@ export async function createApp(config: AppConfig) {
       createdAt: new Date().toISOString()
     };
     await repository.addProject(project);
+    await recordAuditLog(repository, request, {
+      projectId: project.id,
+      action: "project.create",
+      targetType: "project",
+      targetId: project.id,
+      summary: `创建项目空间：${project.name}`
+    });
     response.status(201).json({ project });
   });
 
@@ -148,6 +171,13 @@ export async function createApp(config: AppConfig) {
       sourceType: "text"
     });
 
+    await recordAuditLog(repository, request, {
+      projectId,
+      action: "document.import",
+      targetType: "document",
+      targetId: result.documentId,
+      summary: `${result.duplicate ? "复用重复文档" : "导入文本文档"}：${result.document.title}`
+    });
     response.status(result.duplicate ? 200 : 201).json(result);
   });
 
@@ -178,6 +208,13 @@ export async function createApp(config: AppConfig) {
         originalName: request.file.originalname
       });
 
+      await recordAuditLog(repository, request, {
+        projectId,
+        action: "document.upload",
+        targetType: "document",
+        targetId: result.documentId,
+        summary: `${result.duplicate ? "复用重复上传" : "上传文档"}：${result.document.title}`
+      });
       response.status(result.duplicate ? 200 : 201).json({
         ...result,
         parser: parsed.parser,
@@ -194,6 +231,13 @@ export async function createApp(config: AppConfig) {
       return;
     }
     const results = await seedPublicSafeDataset(ingestion, projectId);
+    await recordAuditLog(repository, _request, {
+      projectId,
+      action: "dataset.seed",
+      targetType: "dataset",
+      targetId: "public-safe",
+      summary: `初始化公开安全数据集：新增 ${results.filter((result) => !result.duplicate).length} 份，重复 ${results.filter((result) => result.duplicate).length} 份`
+    });
     response.json({
       imported: results.filter((result) => !result.duplicate).length,
       duplicates: results.filter((result) => result.duplicate).length,
@@ -239,7 +283,14 @@ export async function createApp(config: AppConfig) {
       return;
     }
 
-    response.json(await rag.answerQuestion(question, topK, projectId));
+    const answer = await rag.answerQuestion(question, topK, projectId);
+    await recordAuditLog(repository, request, {
+      projectId,
+      action: "rag.query",
+      targetType: "question",
+      summary: `智能问答：${question.slice(0, 80)}`
+    });
+    response.json(answer);
   });
 
   app.post("/api/contracts/review", async (request, response) => {
@@ -273,7 +324,15 @@ export async function createApp(config: AppConfig) {
       return;
     }
 
-    response.json(reviewContract(chunks));
+    const review = reviewContract(chunks);
+    await recordAuditLog(repository, request, {
+      projectId,
+      action: "contract.review",
+      targetType: "contract",
+      targetId: documentId,
+      summary: `合同审查：识别 ${review.risks.length} 项风险`
+    });
+    response.json(review);
   });
 
   return app;

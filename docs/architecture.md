@@ -75,7 +75,8 @@ flowchart LR
 9. Each quality report is recorded as an evaluation run. Memory mode keeps recent runs in process; pgvector mode stores them in PostgreSQL `evaluation_runs`.
 10. `GET /api/quality/trends` returns recent evaluation runs for the quality panel.
 11. `GET /api/evaluation/report` exposes every deterministic eval result so the web UI can show citation-hit, expected topic, refusal evidence, and aggregate accuracy metrics, not just a summary score.
-12. When the query is outside the current legal/contract corpus or retrieval evidence is too weak, the RAG service refuses with a "current materials cannot confirm" answer and no citations.
+12. Sensitive project-space operations record audit logs with the acting user, action, target, summary, and timestamp.
+13. When the query is outside the current legal/contract corpus or retrieval evidence is too weak, the RAG service refuses with a "current materials cannot confirm" answer and no citations.
 
 ## Contract Review Flow
 

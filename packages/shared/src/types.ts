@@ -19,6 +19,25 @@ export interface AuthStatus {
   user?: AuthUser;
 }
 
+export type AuditAction =
+  | "project.create"
+  | "document.import"
+  | "document.upload"
+  | "dataset.seed"
+  | "rag.query"
+  | "contract.review";
+
+export interface AuditLogEntry {
+  id: string;
+  projectId?: string;
+  userEmail: string;
+  action: AuditAction;
+  targetType?: "project" | "document" | "dataset" | "question" | "contract";
+  targetId?: string;
+  summary: string;
+  createdAt: string;
+}
+
 export interface LegalDocument {
   id: string;
   projectId: string;

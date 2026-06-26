@@ -73,6 +73,34 @@ test("auth routes protect API routes when auth is enabled", async () => {
         }
       ]
     });
+
+    const createProject = await fetch(`${baseUrl}/api/projects`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: cookie
+      },
+      body: JSON.stringify({
+        name: "审计项目"
+      })
+    });
+    assert.equal(createProject.status, 201);
+    const created = (await createProject.json()) as { project: { id: string } };
+
+    const auditLogs = await fetch(`${baseUrl}/api/audit-logs?projectId=${created.project.id}`, {
+      headers: {
+        Cookie: cookie
+      }
+    });
+    assert.equal(auditLogs.status, 200);
+    const auditBody = (await auditLogs.json()) as {
+      logs: Array<{ action: string; projectId: string; userEmail: string; summary: string }>;
+    };
+    assert.equal(auditBody.logs.length, 1);
+    assert.equal(auditBody.logs[0]?.action, "project.create");
+    assert.equal(auditBody.logs[0]?.projectId, created.project.id);
+    assert.equal(auditBody.logs[0]?.userEmail, "demo@example.test");
+    assert.match(auditBody.logs[0]?.summary ?? "", /创建项目空间/);
   } finally {
     server.close();
   }

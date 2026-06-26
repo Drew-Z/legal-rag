@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref } from "vue";
 import type {
   AuthStatus,
+  AuditLogEntry,
   ContractReviewResult,
   ContractRisk,
   DocumentChunk,
@@ -46,6 +47,7 @@ const qualityReport = ref<QualityReport | null>(null);
 const qualityTrendReport = ref<QualityTrendReport | null>(null);
 const evaluationReport = ref<EvaluationReport | null>(null);
 const reviewEvaluationReport = ref<ReviewEvaluationReport | null>(null);
+const auditLogs = ref<AuditLogEntry[]>([]);
 const qualityLoading = ref(false);
 const apiStatus = ref("连接中");
 const apiWakeMessage = ref("");
@@ -85,6 +87,7 @@ async function bootstrapWorkspace() {
   await loadQualityTrends();
   await loadEvaluationReport();
   await loadReviewEvaluationReport();
+  await loadAuditLogs();
 }
 
 async function checkHealth(): Promise<boolean> {
@@ -152,6 +155,7 @@ async function logout() {
     qualityTrendReport.value = null;
     evaluationReport.value = null;
     reviewEvaluationReport.value = null;
+    auditLogs.value = [];
   }
 }
 
@@ -194,6 +198,7 @@ async function createProject() {
     ragAnswer.value = null;
     await refreshDocuments();
     await loadQualityReport();
+    await loadAuditLogs();
     notice.value = `已创建项目：${result.project.name}`;
   } catch (error) {
     notice.value = friendlyError(error, "创建项目失败");
@@ -210,6 +215,7 @@ async function changeProject() {
   qaHistory.value = [];
   reviewResult.value = null;
   await refreshDocuments();
+  await loadAuditLogs();
 }
 
 async function loadQualityReport() {
@@ -247,6 +253,15 @@ async function loadReviewEvaluationReport() {
   }
 }
 
+async function loadAuditLogs() {
+  try {
+    const result = await api.auditLogs(selectedProjectId.value);
+    auditLogs.value = result.logs;
+  } catch (error) {
+    notice.value = friendlyError(error, "审计日志加载失败");
+  }
+}
+
 async function refreshQualityReports() {
   qualityLoading.value = true;
   try {
@@ -259,6 +274,7 @@ async function refreshQualityReports() {
     evaluationReport.value = evaluation;
     reviewEvaluationReport.value = reviewEvaluation;
     qualityTrendReport.value = await api.qualityTrends();
+    await loadAuditLogs();
   } catch (error) {
     notice.value = friendlyError(error, "质量报告加载失败");
   } finally {
@@ -291,6 +307,7 @@ async function importDocument() {
       : `已导入 ${result.chunkCount} 个 chunk`;
     await refreshDocuments();
     await selectDocument(result.documentId);
+    await loadAuditLogs();
     activeView.value = "knowledge";
   } catch (error) {
     notice.value = friendlyError(error, "导入失败");
@@ -309,6 +326,7 @@ async function seedDataset() {
     if (result.documents[0]) {
       await selectDocument(result.documents[0].id);
     }
+    await loadAuditLogs();
   } catch (error) {
     notice.value = friendlyError(error, "初始化数据集失败");
   } finally {
@@ -336,6 +354,7 @@ async function uploadDocument(event: Event) {
       : `已通过 ${result.parser.toUpperCase()} 解析并导入 ${result.chunkCount} 个 chunk${warningText}`;
     await refreshDocuments();
     await selectDocument(result.documentId);
+    await loadAuditLogs();
     activeView.value = "knowledge";
   } catch (error) {
     notice.value = friendlyError(error, "上传失败");
@@ -364,6 +383,7 @@ async function askQuestion() {
     if (answer.retrievedChunks[0]) {
       await focusChunk(answer.retrievedChunks[0].documentId, answer.retrievedChunks[0].chunkIndex, false);
     }
+    await loadAuditLogs();
   } catch (error) {
     notice.value = friendlyError(error, "提问失败");
   } finally {
@@ -380,6 +400,7 @@ async function runReview() {
         ? { projectId: selectedProjectId.value, documentId: selectedDocumentId.value }
         : { projectId: selectedProjectId.value, text: text.value }
     );
+    await loadAuditLogs();
   } catch (error) {
     notice.value = friendlyError(error, "审查失败");
   } finally {
@@ -547,6 +568,7 @@ function sleep(ms: number) {
         :quality-trend-report="qualityTrendReport"
         :evaluation-report="evaluationReport"
         :review-evaluation-report="reviewEvaluationReport"
+        :audit-logs="auditLogs"
         :quality-loading="qualityLoading"
         @refresh-quality-reports="refreshQualityReports"
       />
