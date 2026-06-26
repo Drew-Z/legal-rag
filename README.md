@@ -34,6 +34,7 @@
 - 支持项目空间，同一套应用中隔离不同客户、案件或合同包的知识库
 - 可选单用户登录门禁，适合部署演示时保护工作台
 - 项目级审计日志，记录项目创建、文档导入、数据集初始化、问答和合同审查操作
+- 异步入库任务，前端可展示文本导入、文件上传和公开数据集初始化的处理状态
 - 一键初始化公开安全法律数据集，保留来源标签和来源 URL
 - SHA-256 文档判重，避免重复入库
 - 文本清洗和条款级 chunk 切分
@@ -339,6 +340,31 @@ Content-Type: application/json
 }
 ```
 
+前端默认使用异步入库任务接口：
+
+```http
+POST /api/ingestion-jobs/import-text
+Content-Type: application/json
+
+{
+  "projectId": "project_default",
+  "title": "示例合同",
+  "text": "合同正文..."
+}
+```
+
+返回 `202 Accepted` 和 job id。随后轮询：
+
+```http
+GET /api/ingestion-jobs/:id
+```
+
+也可以查看当前项目最近任务：
+
+```http
+GET /api/ingestion-jobs?projectId=project_default
+```
+
 ### 上传文件
 
 ```http
@@ -350,10 +376,31 @@ projectId=project_default
 title=上传文档标题
 ```
 
+异步上传接口：
+
+```http
+POST /api/ingestion-jobs/upload
+Content-Type: multipart/form-data
+
+file=<TXT/PDF/DOCX>
+projectId=project_default
+title=上传文档标题
+```
+
 ### 初始化公开安全数据集
 
 ```http
 POST /api/datasets/seed
+
+{
+  "projectId": "project_default"
+}
+```
+
+异步初始化接口：
+
+```http
+POST /api/ingestion-jobs/seed
 
 {
   "projectId": "project_default"

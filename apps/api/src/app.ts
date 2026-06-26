@@ -11,6 +11,8 @@ import { DocumentIngestionService } from "./documents/ingestion-service.js";
 import { parseUploadedDocument } from "./documents/parsers.js";
 import { cleanText } from "./documents/text.js";
 import { buildEvaluationReport } from "./evaluation/eval-service.js";
+import { InMemoryIngestionJobQueue } from "./ingestion/ingestion-jobs.js";
+import { registerIngestionJobRoutes } from "./ingestion/ingestion-routes.js";
 import { buildQualityReport } from "./quality/quality-service.js";
 import { RagService } from "./rag/rag-service.js";
 import { buildReviewEvaluationReport } from "./review/review-eval-service.js";
@@ -23,6 +25,7 @@ export async function createApp(config: AppConfig) {
   const { repository, embeddings, vectorStore, chatProvider, evaluationHistory } = await createRuntime(config);
   const auth = new AuthService(config.auth);
   const ingestion = new DocumentIngestionService(repository, embeddings, vectorStore);
+  const ingestionJobs = new InMemoryIngestionJobQueue();
   const rag = new RagService(embeddings, vectorStore, chatProvider);
   const upload = multer({
     storage: multer.memoryStorage(),
@@ -119,6 +122,13 @@ export async function createApp(config: AppConfig) {
 
     const limit = Math.max(1, Math.min(Number(request.query.limit ?? 50), 100));
     response.json({ logs: await repository.listAuditLogs(projectId, limit) });
+  });
+
+  registerIngestionJobRoutes(app, {
+    repository,
+    ingestion,
+    ingestionJobs,
+    uploadSingleFile: upload.single("file")
   });
 
   app.get("/api/projects", async (_request, response) => {

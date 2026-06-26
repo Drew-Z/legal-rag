@@ -101,7 +101,65 @@ test("auth routes protect API routes when auth is enabled", async () => {
     assert.equal(auditBody.logs[0]?.projectId, created.project.id);
     assert.equal(auditBody.logs[0]?.userEmail, "demo@example.test");
     assert.match(auditBody.logs[0]?.summary ?? "", /创建项目空间/);
+
+    const createJob = await fetch(`${baseUrl}/api/ingestion-jobs/import-text`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: cookie
+      },
+      body: JSON.stringify({
+        projectId: created.project.id,
+        title: "异步入库合同",
+        text: "第一条 交付标准以双方沟通为准。第二条 项目完成后一次性支付。"
+      })
+    });
+    assert.equal(createJob.status, 202);
+    const createdJob = (await createJob.json()) as { job: { id: string; status: string } };
+    assert.equal(createdJob.job.status, "queued");
+
+    const completedJob = await waitForJob(baseUrl, cookie, createdJob.job.id);
+    assert.equal(completedJob.status, "succeeded");
+    assert.equal(completedJob.result?.document?.title, "异步入库合同");
+    assert.ok(completedJob.result?.chunkCount);
+
+    const jobs = await fetch(`${baseUrl}/api/ingestion-jobs?projectId=${created.project.id}`, {
+      headers: {
+        Cookie: cookie
+      }
+    });
+    assert.equal(jobs.status, 200);
+    const jobsBody = (await jobs.json()) as { jobs: Array<{ id: string }> };
+    assert.equal(jobsBody.jobs[0]?.id, createdJob.job.id);
   } finally {
     server.close();
   }
 });
+
+async function waitForJob(baseUrl: string, cookie: string, jobId: string) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const response = await fetch(`${baseUrl}/api/ingestion-jobs/${jobId}`, {
+      headers: {
+        Cookie: cookie
+      }
+    });
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      job: {
+        status: string;
+        result?: {
+          chunkCount?: number;
+          document?: {
+            title: string;
+          };
+        };
+      };
+    };
+    if (body.job.status === "succeeded" || body.job.status === "failed") {
+      return body.job;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+
+  throw new Error("expected ingestion job to finish");
+}

@@ -52,6 +52,36 @@ export interface LegalDocument {
   sourceLabel?: string;
 }
 
+export type IngestionJobKind = "import-text" | "upload" | "seed-dataset";
+export type IngestionJobStatus = "queued" | "running" | "succeeded" | "failed";
+
+export interface IngestionJobResult {
+  documentId?: string;
+  chunkCount?: number;
+  document?: LegalDocument;
+  duplicate?: boolean;
+  parser?: "txt" | "pdf" | "docx";
+  warnings?: string[];
+  imported?: number;
+  duplicates?: number;
+  documents?: LegalDocument[];
+}
+
+export interface IngestionJob {
+  id: string;
+  projectId: string;
+  kind: IngestionJobKind;
+  title: string;
+  status: IngestionJobStatus;
+  progress: number;
+  message: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  result?: IngestionJobResult;
+  error?: string;
+}
+
 export interface ChunkMetadata {
   projectId: string;
   source: string;

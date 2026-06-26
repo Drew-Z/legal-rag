@@ -4,6 +4,7 @@ import type {
   ContractReviewResult,
   DocumentChunk,
   EvaluationReport,
+  IngestionJob,
   LegalDocument,
   ProjectSpace,
   QualityReport,
@@ -32,6 +33,10 @@ export interface SeedDatasetResponse {
 
 export interface CreateProjectResponse {
   project: ProjectSpace;
+}
+
+export interface IngestionJobResponse {
+  job: IngestionJob;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") ?? "";
@@ -84,6 +89,21 @@ export const api = {
     request<CreateProjectResponse>("/api/projects", {
       method: "POST",
       body: JSON.stringify({ name, description })
+    }),
+  listIngestionJobs: (projectId: string) =>
+    request<{ jobs: IngestionJob[] }>(`/api/ingestion-jobs?projectId=${encodeURIComponent(projectId)}`),
+  getIngestionJob: (jobId: string) => request<IngestionJobResponse>(`/api/ingestion-jobs/${jobId}`),
+  createTextIngestionJob: (projectId: string, title: string, text: string) =>
+    request<IngestionJobResponse>("/api/ingestion-jobs/import-text", {
+      method: "POST",
+      body: JSON.stringify({ projectId, title, text })
+    }),
+  createUploadIngestionJob: (projectId: string, file: File, title: string, onProgress?: (percent: number) => void) =>
+    uploadRequest<IngestionJobResponse>("/api/ingestion-jobs/upload", projectId, file, title, onProgress),
+  createSeedIngestionJob: (projectId: string) =>
+    request<IngestionJobResponse>("/api/ingestion-jobs/seed", {
+      method: "POST",
+      body: JSON.stringify({ projectId })
     }),
   importText: (projectId: string, title: string, text: string) =>
     request<ImportTextResponse>("/api/documents/import-text", {

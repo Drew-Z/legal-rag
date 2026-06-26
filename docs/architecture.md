@@ -66,17 +66,18 @@ flowchart LR
 
 1. The user selects or creates a project space through `GET /api/projects` and `POST /api/projects`.
 2. Within that project, the user imports text through `POST /api/documents/import-text`, uploads TXT/PDF/DOCX through `POST /api/documents/upload`, or seeds the public-safe dataset through `POST /api/datasets/seed`.
-3. The API computes a SHA-256 content hash scoped to the project and returns the existing document when the same text is imported again.
-4. The API cleans text, enriches source metadata with `projectId`, splits it into section-aware chunks, and estimates token count.
-5. `MockEmbeddingProvider` creates deterministic local embeddings when no API key is available; `OpenAICompatibleEmbeddingProvider` can call a real embedding model such as `Qwen3-Embedding-0.6B`.
-6. `MemoryVectorStore` stores chunks and vectors in process memory; `PgVectorStore` persists chunk embeddings in PostgreSQL + pgvector.
-7. `POST /api/rag/query` rewrites short contextual questions, embeds the rewritten question, recalls top 20 candidates from both vector and keyword search inside the selected project, filters weak candidates, reranks down to top 5, generates a grounded answer, and returns citations plus diagnostics.
-8. `GET /api/quality/report` aggregates runtime configuration, corpus size, the deterministic RAG eval suite, contract-review eval suite, and readiness checks for the web quality panel.
-9. Each quality report is recorded as an evaluation run. Memory mode keeps recent runs in process; pgvector mode stores them in PostgreSQL `evaluation_runs`.
-10. `GET /api/quality/trends` returns recent evaluation runs for the quality panel.
-11. `GET /api/evaluation/report` exposes every deterministic eval result so the web UI can show citation-hit, expected topic, refusal evidence, and aggregate accuracy metrics, not just a summary score.
-12. Sensitive project-space operations record audit logs with the acting user, action, target, summary, and timestamp.
-13. When the query is outside the current legal/contract corpus or retrieval evidence is too weak, the RAG service refuses with a "current materials cannot confirm" answer and no citations.
+3. The Web app uses `POST /api/ingestion-jobs/import-text`, `POST /api/ingestion-jobs/upload`, and `POST /api/ingestion-jobs/seed` so ingestion can report queued/running/succeeded/failed status. The current adapter is in-process; the interface can later move to BullMQ.
+4. The API computes a SHA-256 content hash scoped to the project and returns the existing document when the same text is imported again.
+5. The API cleans text, enriches source metadata with `projectId`, splits it into section-aware chunks, and estimates token count.
+6. `MockEmbeddingProvider` creates deterministic local embeddings when no API key is available; `OpenAICompatibleEmbeddingProvider` can call a real embedding model such as `Qwen3-Embedding-0.6B`.
+7. `MemoryVectorStore` stores chunks and vectors in process memory; `PgVectorStore` persists chunk embeddings in PostgreSQL + pgvector.
+8. `POST /api/rag/query` rewrites short contextual questions, embeds the rewritten question, recalls top 20 candidates from both vector and keyword search inside the selected project, filters weak candidates, reranks down to top 5, generates a grounded answer, and returns citations plus diagnostics.
+9. `GET /api/quality/report` aggregates runtime configuration, corpus size, the deterministic RAG eval suite, contract-review eval suite, and readiness checks for the web quality panel.
+10. Each quality report is recorded as an evaluation run. Memory mode keeps recent runs in process; pgvector mode stores them in PostgreSQL `evaluation_runs`.
+11. `GET /api/quality/trends` returns recent evaluation runs for the quality panel.
+12. `GET /api/evaluation/report` exposes every deterministic eval result so the web UI can show citation-hit, expected topic, refusal evidence, and aggregate accuracy metrics, not just a summary score.
+13. Sensitive project-space operations record audit logs with the acting user, action, target, summary, and timestamp.
+14. When the query is outside the current legal/contract corpus or retrieval evidence is too weak, the RAG service refuses with a "current materials cannot confirm" answer and no citations.
 
 ## Contract Review Flow
 
@@ -96,6 +97,7 @@ The service returns both structured JSON and readable Markdown.
 
 - Switch between mock/memory and OpenAI-compatible/pgvector with environment variables.
 - Move document processing to BullMQ when ingestion becomes asynchronous.
+- Replace the current in-process ingestion job adapter with BullMQ for durable large-file and batch processing.
 - Replace the current lightweight rerank with a cross-encoder or model reranker.
 - Add OCR and table-aware parsing for scanned or complex contracts.
 - Expand the current quality trend storage into long-term charts, release comparisons, and CI-published reports.

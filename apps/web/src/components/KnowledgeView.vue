@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { DocumentChunk, LegalDocument } from "@legal-rag/shared";
+import type { DocumentChunk, IngestionJob, LegalDocument } from "@legal-rag/shared";
 
 defineProps<{
   documents: LegalDocument[];
+  ingestionJobs: IngestionJob[];
   chunks: DocumentChunk[];
   selectedDocument: LegalDocument | undefined;
   selectedDocumentId: string;
@@ -58,6 +59,18 @@ function chunkKey(documentId: string, chunkIndex: number) {
         <textarea :value="text" placeholder="粘贴合同或法律文档文本" @input="$emit('update:text', ($event.target as HTMLTextAreaElement).value)" />
       </label>
       <button class="primary" :disabled="busy" @click="$emit('importDocument')">导入并向量化</button>
+      <div v-if="ingestionJobs.length > 0" class="job-list">
+        <article v-for="job in ingestionJobs.slice(0, 4)" :key="job.id" class="job-row">
+          <div>
+            <strong>{{ job.title }}</strong>
+            <span :class="['job-badge', job.status]">{{ job.status }}</span>
+          </div>
+          <p>{{ job.message }}</p>
+          <div class="progress">
+            <span :style="{ width: `${job.progress}%` }"></span>
+          </div>
+        </article>
+      </div>
     </div>
 
     <div class="panel">
@@ -114,4 +127,3 @@ function chunkKey(documentId: string, chunkIndex: number) {
     </div>
   </section>
 </template>
-

@@ -421,6 +421,7 @@ textarea {
 
 .doc-list,
 .chunk-list,
+.job-list,
 .risk-list,
 .answer {
   display: grid;
@@ -487,6 +488,7 @@ textarea {
 }
 
 .chunk-row,
+.job-row,
 .answer article,
 .risk-row {
   padding: 12px;
@@ -506,6 +508,7 @@ textarea {
 }
 
 .chunk-row p,
+.job-row p,
 .answer article p,
 .risk-row p {
   margin-bottom: 0;
@@ -519,6 +522,43 @@ textarea {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 8px;
+}
+
+.job-row {
+  display: grid;
+  gap: 8px;
+}
+
+.job-row div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.job-badge {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #edf8f6;
+  color: #087c73;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.job-badge.failed {
+  background: #f8e4e1;
+  color: #8f2d25;
+}
+
+.job-badge.succeeded {
+  background: #e3f7ee;
+  color: #17643f;
+}
+
+.job-badge.running,
+.job-badge.queued {
+  background: #fff1d9;
+  color: #7a4a08;
 }
 
 .result-panel {

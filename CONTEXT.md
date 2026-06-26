@@ -6,6 +6,7 @@ This repository is a single-context project for a legal-document RAG demo and co
 
 - **Project Space**: A workspace that scopes documents, duplicate detection, retrieval, Q&A, and contract review. The default project keeps local demos simple.
 - **Legal Document**: A user-imported text, uploaded file, public-safe dataset entry, or sample contract stored with source metadata and a content hash.
+- **Ingestion Job**: A project-scoped asynchronous task for text import, file upload, or public-safe dataset seeding. It records status, progress, result, and errors.
 - **Chunk**: A section-aware text fragment with source metadata, page, section, chunk index, token estimate, and an embedding.
 - **Citation**: The traceable source evidence returned with RAG answers and contract-review risks.
 - **RAG Answer**: A grounded answer generated from retrieved chunks. It includes citations, retrieved chunks, rewritten question, and diagnostics.
@@ -24,6 +25,7 @@ This repository is a single-context project for a legal-document RAG demo and co
 
 - Legal answers must be citation-grounded or refuse when current materials are insufficient.
 - Uploaded or seeded documents must be scoped to a project space.
+- Ingestion jobs should expose progress without storing raw document text in job records.
 - Project-space mutations and AI actions should record audit logs so future multi-user authorization can be reviewed.
 - Model keys, database credentials, and demo login credentials must never be committed.
 - Hosted auth is intentionally single-user until multi-user authorization is designed.

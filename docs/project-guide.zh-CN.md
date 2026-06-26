@@ -42,6 +42,7 @@ Legal RAG 是一个法律文档问答与合同风险审查应用。项目目标�
 - CI 覆盖 typecheck、unit test、validate、RAG eval、contract review eval、build 和 Docker Compose 配置检查。
 - 质量趋势已经设计为 `Evaluation Run`，本地 memory 模式记录进程内趋势，pgvector 模式写入 PostgreSQL `evaluation_runs` 表。
 - 项目级 `Audit Log` 已经记录项目创建、文档导入/上传、公开数据集初始化、RAG 问答和合同审查，为后续多用户授权、项目治理和操作追溯铺底。
+- 文本导入、文件上传和公开数据集初始化已经通过 `Ingestion Job` 接口进入异步任务流程；当前使用进程内任务 adapter，后续可替换为 BullMQ。
 
 ## 线上演示路径
 
@@ -128,12 +129,12 @@ Supabase 已经承担 PostgreSQL + pgvector 职责，不需要再额外接入 Ai
 
 ### 第三阶段：异步入库任务
 
-当前入库流程在请求中同步完成。对于大文件、PDF、真实 embedding 和批量合同，建议引入 `Ingestion Job`：
+当前已引入 `Ingestion Job`，但任务状态仍保存在 API 进程内。对于大文件、PDF、真实 embedding 和批量合同，下一步建议增强为持久化队列：
 
 - 上传后立即返回 job id。
 - 后台执行解析、chunk、embedding 和 pgvector upsert。
 - 前端轮询进度、失败原因和重试状态。
-- 本地可先用 inline worker，后续再替换为 BullMQ 或其他队列。
+- 将当前 in-process adapter 替换为 BullMQ 或其他 durable queue。
 
 ### 第四阶段：LLM 辅助合同审查
 

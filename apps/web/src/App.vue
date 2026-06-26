@@ -7,6 +7,8 @@ import type {
   ContractRisk,
   DocumentChunk,
   EvaluationReport,
+  IngestionJob,
+  IngestionJobResult,
   LegalDocument,
   ProjectSpace,
   QualityReport,
@@ -34,6 +36,7 @@ const projects = ref<ProjectSpace[]>([]);
 const selectedProjectId = ref("project_default");
 const projectName = ref("");
 const documents = ref<LegalDocument[]>([]);
+const ingestionJobs = ref<IngestionJob[]>([]);
 const chunks = ref<DocumentChunk[]>([]);
 const selectedDocumentId = ref("");
 const selectedChunkKey = ref("");
@@ -83,6 +86,7 @@ onMounted(async () => {
 async function bootstrapWorkspace() {
   await refreshProjects();
   await refreshDocuments();
+  await refreshIngestionJobs();
   await loadQualityReport();
   await loadQualityTrends();
   await loadEvaluationReport();
@@ -145,6 +149,7 @@ async function logout() {
     authStatus.value = await api.logout();
   } finally {
     documents.value = [];
+    ingestionJobs.value = [];
     chunks.value = [];
     selectedDocumentId.value = "";
     selectedChunkKey.value = "";
@@ -170,6 +175,11 @@ async function refreshDocuments() {
   if (selectedDocumentId.value && !result.documents.some((document) => document.id === selectedDocumentId.value)) {
     selectedDocumentId.value = "";
   }
+}
+
+async function refreshIngestionJobs() {
+  const result = await api.listIngestionJobs(selectedProjectId.value);
+  ingestionJobs.value = result.jobs;
 }
 
 async function refreshProjects() {
@@ -215,6 +225,7 @@ async function changeProject() {
   qaHistory.value = [];
   reviewResult.value = null;
   await refreshDocuments();
+  await refreshIngestionJobs();
   await loadAuditLogs();
 }
 
@@ -300,8 +311,10 @@ async function selectDocument(documentId: string, chunkIndex?: number) {
 async function importDocument() {
   busy.value = true;
   notice.value = "";
+  uploadProgress.value = 0;
   try {
-    const result = await api.importText(selectedProjectId.value, title.value, text.value);
+    const { job } = await api.createTextIngestionJob(selectedProjectId.value, title.value, text.value);
+    const result = requireDocumentJobResult(await waitForIngestionJob(job.id));
     notice.value = result.duplicate
       ? `检测到重复文档，已复用 ${result.chunkCount} 个 chunk`
       : `已导入 ${result.chunkCount} 个 chunk`;
@@ -313,24 +326,31 @@ async function importDocument() {
     notice.value = friendlyError(error, "导入失败");
   } finally {
     busy.value = false;
+    uploadProgress.value = 0;
   }
 }
 
 async function seedDataset() {
   busy.value = true;
   notice.value = "";
+  uploadProgress.value = 0;
   try {
-    const result = await api.seedDataset(selectedProjectId.value);
-    notice.value = `公开安全数据集已就绪：新增 ${result.imported} 份，复用 ${result.duplicates} 份`;
+    const { job } = await api.createSeedIngestionJob(selectedProjectId.value);
+    const result = await waitForIngestionJob(job.id);
+    const imported = result.imported ?? 0;
+    const duplicates = result.duplicates ?? 0;
+    const seededDocuments = result.documents ?? [];
+    notice.value = `公开安全数据集已就绪：新增 ${imported} 份，复用 ${duplicates} 份`;
     await refreshDocuments();
-    if (result.documents[0]) {
-      await selectDocument(result.documents[0].id);
+    if (seededDocuments[0]) {
+      await selectDocument(seededDocuments[0].id);
     }
     await loadAuditLogs();
   } catch (error) {
     notice.value = friendlyError(error, "初始化数据集失败");
   } finally {
     busy.value = false;
+    uploadProgress.value = 0;
   }
 }
 
@@ -345,9 +365,10 @@ async function uploadDocument(event: Event) {
   uploadProgress.value = 0;
   notice.value = "";
   try {
-    const result = await api.uploadDocument(selectedProjectId.value, file, title.value || file.name, (percent) => {
+    const { job } = await api.createUploadIngestionJob(selectedProjectId.value, file, title.value || file.name, (percent) => {
       uploadProgress.value = percent;
     });
+    const result = requireDocumentJobResult(await waitForIngestionJob(job.id));
     const warningText = result.warnings.length > 0 ? `，解析提示 ${result.warnings.length} 条` : "";
     notice.value = result.duplicate
       ? `检测到重复上传，已复用 ${result.chunkCount} 个 chunk${warningText}`
@@ -363,6 +384,42 @@ async function uploadDocument(event: Event) {
     uploadProgress.value = 0;
     input.value = "";
   }
+}
+
+async function waitForIngestionJob(jobId: string): Promise<IngestionJobResult> {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const { job } = await api.getIngestionJob(jobId);
+    await refreshIngestionJobs();
+    uploadProgress.value = job.progress;
+    notice.value = `${job.title}：${job.message}`;
+
+    if (job.status === "succeeded") {
+      return job.result ?? {};
+    }
+    if (job.status === "failed") {
+      throw new Error(job.error ?? "入库任务失败");
+    }
+
+    await sleep(1000);
+  }
+
+  throw new Error("入库任务超时，请稍后查看任务状态");
+}
+
+function requireDocumentJobResult(result: IngestionJobResult) {
+  if (!result.documentId || !result.document || typeof result.chunkCount !== "number") {
+    throw new Error("入库任务没有返回文档结果");
+  }
+
+  return {
+    ...result,
+    documentId: result.documentId,
+    document: result.document,
+    chunkCount: result.chunkCount,
+    duplicate: result.duplicate ?? false,
+    parser: result.parser ?? "txt",
+    warnings: result.warnings ?? []
+  };
 }
 
 async function askQuestion() {
@@ -528,6 +585,7 @@ function sleep(ms: number) {
         v-model:selected-chunk-key="selectedChunkKey"
         :documents="documents"
         :chunks="chunks"
+        :ingestion-jobs="ingestionJobs"
         :selected-document="selectedDocument"
         :selected-document-id="selectedDocumentId"
         :selected-chunk="selectedChunk"
