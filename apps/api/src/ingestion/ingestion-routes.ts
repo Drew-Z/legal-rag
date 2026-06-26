@@ -1,5 +1,6 @@
 import type { Express, Request, RequestHandler, Response } from "express";
 import { recordAuditLog } from "../audit/audit-log.js";
+import { getRequestUser } from "../auth/session.js";
 import { seedPublicSafeDataset } from "../datasets/dataset-service.js";
 import type { DocumentIngestionService } from "../documents/ingestion-service.js";
 import { parseUploadedDocument } from "../documents/parsers.js";
@@ -27,10 +28,14 @@ export function registerIngestionJobRoutes(
     response.json({ jobs: ingestionJobs.list(projectId, limit) });
   });
 
-  app.get("/api/ingestion-jobs/:id", (request, response) => {
+  app.get("/api/ingestion-jobs/:id", async (request, response) => {
     const job = ingestionJobs.get(request.params.id);
     if (!job) {
       response.status(404).json({ error: "ingestion job not found" });
+      return;
+    }
+    if (!(await repository.userCanAccessProject(job.projectId, getRequestUser(request).email))) {
+      response.status(403).json({ error: "project access denied" });
       return;
     }
     response.json({ job });
@@ -181,9 +186,13 @@ async function resolveProjectId(
     DEFAULT_PROJECT_ID;
   const projectId = String(rawProjectId).trim() || DEFAULT_PROJECT_ID;
   const projects = await repository.listProjects();
-
   if (!projects.some((project) => project.id === projectId)) {
     response.status(404).json({ error: "project not found" });
+    return undefined;
+  }
+
+  if (!(await repository.userCanAccessProject(projectId, getRequestUser(request).email))) {
+    response.status(403).json({ error: "project access denied" });
     return undefined;
   }
 

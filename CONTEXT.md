@@ -5,6 +5,7 @@ This repository is a single-context project for a legal-document RAG demo and co
 ## Domain Terms
 
 - **Project Space**: A workspace that scopes documents, duplicate detection, retrieval, Q&A, and contract review. The default project keeps local demos simple.
+- **Project Member**: A configured user with a role in a project space. Project owners can access their private project spaces; the default project remains shared for demos.
 - **Legal Document**: A user-imported text, uploaded file, public-safe dataset entry, or sample contract stored with source metadata and a content hash.
 - **Ingestion Job**: A project-scoped asynchronous task for text import, file upload, or public-safe dataset seeding. It records status, progress, result, and errors.
 - **Chunk**: A section-aware text fragment with source metadata, page, section, chunk index, token estimate, and an embedding.
@@ -27,6 +28,6 @@ This repository is a single-context project for a legal-document RAG demo and co
 - Contract review must remain rule-recalled and citation-grounded; model output may improve explanations only after schema validation.
 - Uploaded or seeded documents must be scoped to a project space.
 - Ingestion jobs should expose progress without storing raw document text in job records.
-- Project-space mutations and AI actions should record audit logs so future multi-user authorization can be reviewed.
+- Project-space mutations and AI actions should record audit logs so configured-user and future RBAC authorization can be reviewed.
 - Model keys, database credentials, and demo login credentials must never be committed.
-- Hosted auth is intentionally single-user until multi-user authorization is designed.
+- Hosted auth supports a simple configured-user model. Existing single-user deployments use `AUTH_EMAIL` / `AUTH_PASSWORD`; multi-user demos can use `AUTH_USERS_JSON`.

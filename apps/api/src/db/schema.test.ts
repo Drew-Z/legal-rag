@@ -14,4 +14,6 @@ test("createPgVectorSchemaSql creates pgvector tables and indexes", () => {
   assert.match(sql, /evaluation_runs_generated_at_idx/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS audit_logs/);
   assert.match(sql, /audit_logs_project_created_at_idx/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS project_members/);
+  assert.match(sql, /project_members_user_email_idx/);
 });

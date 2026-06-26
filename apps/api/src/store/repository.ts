@@ -1,4 +1,4 @@
-import type { AuditLogEntry, DocumentChunk, LegalDocument, ProjectSpace } from "@legal-rag/shared";
+import type { AuditLogEntry, DocumentChunk, LegalDocument, ProjectMember, ProjectSpace } from "@legal-rag/shared";
 
 export const DEFAULT_PROJECT_ID = "project_default";
 export const DEFAULT_PROJECT: ProjectSpace = {
@@ -12,6 +12,9 @@ export const DEFAULT_PROJECT: ProjectSpace = {
 export interface DocumentRepository {
   addProject(project: ProjectSpace): void | Promise<void>;
   listProjects(): ProjectSpace[] | Promise<ProjectSpace[]>;
+  listProjectsForUser(userEmail: string): ProjectSpace[] | Promise<ProjectSpace[]>;
+  addProjectMember(member: ProjectMember): void | Promise<void>;
+  userCanAccessProject(projectId: string, userEmail: string): boolean | Promise<boolean>;
   recordAuditLog(entry: AuditLogEntry): void | Promise<void>;
   listAuditLogs(projectId?: string, limit?: number): AuditLogEntry[] | Promise<AuditLogEntry[]>;
   addDocument(document: LegalDocument, chunks: DocumentChunk[]): void | Promise<void>;
@@ -28,24 +31,48 @@ export interface DocumentRepository {
 export class Repository implements DocumentRepository {
   private readonly projects = new Map<string, ProjectSpace>([[DEFAULT_PROJECT.id, DEFAULT_PROJECT]]);
   private readonly documents = new Map<string, LegalDocument>();
+  private readonly projectMembers = new Map<string, ProjectMember>();
   private readonly documentIdByHash = new Map<string, string>();
   private readonly chunksByDocument = new Map<string, DocumentChunk[]>();
   private readonly auditLogs: AuditLogEntry[] = [];
 
   addProject(project: ProjectSpace): void {
     this.projects.set(project.id, project);
+    if (project.ownerEmail) {
+      this.addProjectMember({
+        projectId: project.id,
+        userEmail: project.ownerEmail,
+        role: "owner",
+        createdAt: project.createdAt
+      });
+    }
   }
 
   listProjects(): ProjectSpace[] {
-    return [...this.projects.values()].sort((left, right) => {
-      if (left.isDefault) {
-        return -1;
-      }
-      if (right.isDefault) {
-        return 1;
-      }
-      return right.createdAt.localeCompare(left.createdAt);
-    });
+    return sortProjects([...this.projects.values()]);
+  }
+
+  listProjectsForUser(userEmail: string): ProjectSpace[] {
+    return sortProjects(
+      [...this.projects.values()].filter(
+        (project) => project.isDefault || this.userCanAccessProject(project.id, userEmail)
+      )
+    );
+  }
+
+  addProjectMember(member: ProjectMember): void {
+    this.projectMembers.set(projectMemberKey(member.projectId, member.userEmail), member);
+  }
+
+  userCanAccessProject(projectId: string, userEmail: string): boolean {
+    const project = this.projects.get(projectId);
+    if (!project) {
+      return false;
+    }
+    if (project.isDefault) {
+      return true;
+    }
+    return this.projectMembers.has(projectMemberKey(projectId, userEmail));
   }
 
   recordAuditLog(entry: AuditLogEntry): void {
@@ -90,6 +117,22 @@ export class Repository implements DocumentRepository {
   }
 }
 
+function sortProjects(projects: ProjectSpace[]): ProjectSpace[] {
+  return projects.sort((left, right) => {
+    if (left.isDefault) {
+      return -1;
+    }
+    if (right.isDefault) {
+      return 1;
+    }
+    return right.createdAt.localeCompare(left.createdAt);
+  });
+}
+
 function hashKey(projectId: string, contentHash: string): string {
   return `${projectId}:${contentHash}`;
+}
+
+function projectMemberKey(projectId: string, userEmail: string): string {
+  return `${projectId}:${userEmail}`;
 }

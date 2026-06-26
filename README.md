@@ -8,11 +8,11 @@
 
 - Web: `https://legal-rag-web.onrender.com`
 - API health: `https://legal-rag-api-9bki.onrender.com/api/health`
-- Demo 保护：线上环境启用单用户登录，登录账号和密码不提交到仓库。
+- Demo 保护：线上环境启用登录门禁，登录账号和密码不提交到仓库。
 
 ## 5 分钟演示路径
 
-1. `0:00-0:30` 登录工作台，说明线上 demo 使用单用户门禁保护模型 key、上传接口和数据库资源。
+1. `0:00-0:30` 登录工作台，说明线上 demo 使用登录门禁保护模型 key、上传接口和数据库资源。
 2. `0:30-1:20` 进入知识库，初始化公开安全数据集，说明文档会被清洗、判重、chunk，并写入 Supabase pgvector。
 3. `1:20-2:30` 切到智能问答，提问“技术服务合同里，验收标准不明确会带来什么风险？”，展示 answer、citations、diagnostics。
 4. `2:30-3:40` 切到合同审查，运行示例合同审查，展示风险条款、风险等级、修改建议、引用和导出。
@@ -32,7 +32,7 @@
 
 - 导入合同或法律文本，支持粘贴文本、TXT、PDF、DOCX
 - 支持项目空间，同一套应用中隔离不同客户、案件或合同包的知识库
-- 可选单用户登录门禁，适合部署演示时保护工作台
+- 可选登录门禁，兼容单用户配置，也支持 `AUTH_USERS_JSON` 多用户演示配置
 - 项目级审计日志，记录项目创建、文档导入、数据集初始化、问答和合同审查操作
 - 异步入库任务，前端可展示文本导入、文件上传和公开数据集初始化的处理状态
 - 一键初始化公开安全法律数据集，保留来源标签和来源 URL
@@ -131,6 +131,7 @@ AUTH_ENABLED=false
 AUTH_EMAIL=demo@legal-rag.local
 AUTH_NAME=演示用户
 AUTH_PASSWORD=
+AUTH_USERS_JSON=
 AUTH_SESSION_SECRET=
 AUTH_SESSION_TTL_HOURS=8
 AUTH_COOKIE_SECURE=false
@@ -156,7 +157,7 @@ DATABASE_URL=postgresql://postgres:你的密码@你的host:5432/postgres?sslmode
 
 `MODEL_PROVIDER=openai-compatible` 时，生成模型走 `LLM_*`，embedding 默认复用同一组 `LLM_*`；如果你给 `EMBEDDING_BASE_URL` 和 `EMBEDDING_API_KEY`，embedding 就会单独走那一组凭据。
 
-如需开启单用户登录：
+如需开启登录门禁：
 
 ```text
 AUTH_ENABLED=true
@@ -168,6 +169,14 @@ AUTH_COOKIE_SAME_SITE=Lax
 ```
 
 生产 HTTPS 部署时把 `AUTH_COOKIE_SECURE` 改为 `true`。如果前端和 API 是不同站点或不同 Render 子域名，同时设置 `AUTH_COOKIE_SAME_SITE=None`。
+
+如需配置多个演示用户，可以用 `AUTH_USERS_JSON` 替代 `AUTH_EMAIL` / `AUTH_PASSWORD` 登录列表：
+
+```text
+AUTH_USERS_JSON=[{"email":"owner@example.com","name":"Owner","password":"强密码1"},{"email":"reviewer@example.com","name":"Reviewer","password":"强密码2"}]
+```
+
+默认项目对已登录用户可见，用户新建的项目空间会自动成为该用户的私有项目，后续请求会先校验项目成员权限。
 
 Web 前端支持单独配置线上 API 地址。本地开发可保持为空，继续使用 Vite `/api` proxy；Render Static Site 设置为 API Web Service 地址：
 
@@ -318,7 +327,7 @@ Content-Type: application/json
 }
 ```
 
-项目空间用于隔离文档、向量召回、问答和合同审查。没有传 `projectId` 时默认使用 `project_default`。
+项目空间用于隔离文档、向量召回、问答和合同审查。没有传 `projectId` 时默认使用 `project_default`。默认项目对已登录用户可见；用户新建项目会记录 owner 和 project member，文档、入库任务、RAG 问答、合同审查和审计日志访问都会校验项目权限。
 
 ### 审计日志
 
@@ -549,7 +558,7 @@ docker compose -f docker-compose.prod.yml config
 
 ## 后续优化
 
-- 增加多用户、角色权限和用户级项目空间授权。
+- 将当前配置型多用户升级为数据库用户表、邀请流程和更完整的角色权限。
 - 扩充真实合同数据集与脱敏样本治理流程。
 - 增加评测趋势、召回率、拒答准确率和审查召回率报表。
 - 增加 CI、镜像发布和云部署脚本。

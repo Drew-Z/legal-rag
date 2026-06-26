@@ -11,12 +11,25 @@ CREATE TABLE IF NOT EXISTS projects (
   name text NOT NULL,
   description text,
   created_at timestamptz NOT NULL,
-  is_default boolean NOT NULL DEFAULT false
+  is_default boolean NOT NULL DEFAULT false,
+  owner_email text
 );
+
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS owner_email text;
 
 INSERT INTO projects (id, name, description, created_at, is_default)
 VALUES ('project_default', '默认项目', '演示与本地导入文档', '2026-06-26T00:00:00.000Z', true)
 ON CONFLICT (id) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS project_members (
+  project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  user_email text NOT NULL,
+  role text NOT NULL,
+  created_at timestamptz NOT NULL,
+  PRIMARY KEY (project_id, user_email)
+);
+
+CREATE INDEX IF NOT EXISTS project_members_user_email_idx ON project_members(user_email);
 
 CREATE TABLE IF NOT EXISTS documents (
   id text PRIMARY KEY,

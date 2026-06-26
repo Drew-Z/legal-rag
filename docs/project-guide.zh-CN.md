@@ -38,10 +38,10 @@ Legal RAG 是一个法律文档问答与合同风险审查应用。项目目标�
 
 - 后端保留 provider adapter 和 vector store adapter，同一套业务逻辑可在 mock/memory 和 openai-compatible/pgvector 之间切换。
 - `apps/api/src/runtime.ts` 负责 runtime 装配，避免 `app.ts` 同时承担全部职责。
-- `CONTEXT.md` 记录领域词汇，`docs/adr/` 记录 Render、Supabase、provider/vector store、单用户 auth 和质量趋势持久化等决策。
+- `CONTEXT.md` 记录领域词汇，`docs/adr/` 记录 Render、Supabase、provider/vector store、登录门禁、项目授权和质量趋势持久化等决策。
 - CI 覆盖 typecheck、unit test、validate、RAG eval、contract review eval、build 和 Docker Compose 配置检查。
 - 质量趋势已经设计为 `Evaluation Run`，本地 memory 模式记录进程内趋势，pgvector 模式写入 PostgreSQL `evaluation_runs` 表。
-- 项目级 `Audit Log` 已经记录项目创建、文档导入/上传、公开数据集初始化、RAG 问答和合同审查，为后续多用户授权、项目治理和操作追溯铺底。
+- 项目级 `Audit Log` 已经记录项目创建、文档导入/上传、公开数据集初始化、RAG 问答和合同审查，并结合项目空间授权支撑操作追溯。
 - 文本导入、文件上传和公开数据集初始化已经通过 `Ingestion Job` 接口进入异步任务流程；当前使用进程内任务 adapter，后续可替换为 BullMQ。
 - 合同审查已经从纯规则扩展为“规则召回 + 可选 LLM 解释 + schema 校验”：规则负责稳定召回和 citation，模型只补强说明，失败时回退规则结果。
 
@@ -49,7 +49,7 @@ Legal RAG 是一个法律文档问答与合同风险审查应用。项目目标�
 
 推荐用 5 分钟讲清楚完整价值：
 
-1. 登录工作台，说明线上 demo 使用单用户门禁保护模型 key、上传接口和数据库资源。
+1. 登录工作台，说明线上 demo 使用登录门禁保护模型 key、上传接口和数据库资源。
 2. 进入知识库，初始化公开安全数据集，说明文档会被清洗、判重、chunk，并写入 Supabase pgvector。
 3. 切到智能问答，提问：
 
@@ -106,29 +106,22 @@ flowchart TB
 - Web: Render Static Site。
 - API: Render Docker Web Service。
 - Database: Supabase PostgreSQL + pgvector。
-- Auth: 线上启用单用户登录，使用 HTTP-only signed cookie。
+- Auth: 线上启用 HTTP-only signed cookie 登录，兼容单用户配置，也支持 `AUTH_USERS_JSON` 配置型多用户演示。
 
 Supabase 已经承担 PostgreSQL + pgvector 职责，不需要再额外接入 Aiven。Render 免费实例可能冷启动，因此前端会提示 API 正在唤醒。
 
 ## 后续完善路线
 
-### 第一阶段：收尾质量趋势
+### 第一阶段：账号体系和团队协作
 
-质量趋势持久化已经接近完成，应先完成验证、提交和部署。完成后，质量面板就可以展示最近的 RAG 和合同审查评测变化。
+当前已经支持配置型多用户、项目 owner、项目成员表和项目级授权，适合 demo 与作品集演示。下一步如果要更接近真实 SaaS，可以增加：
 
-### 第二阶段：多用户和项目空间权限
+- 数据库用户表、邀请流程和密码重置。
+- 项目成员管理 UI。
+- owner/editor/viewer 的完整角色能力矩阵。
+- 外部 IdP 或 Supabase Auth 接入。
 
-当前 `Project Space` 已经用于隔离文档、问答和审查，但登录仍是单用户门禁。下一步可以增加：
-
-- 用户表和项目成员关系。
-- 项目级角色权限。
-- 每个请求解析当前用户和授权项目空间。
-- 审计日志，记录导入、上传、问答和审查操作。
-- 后续可以在已有 Audit Log 基础上增加用户表、项目成员表和角色校验。
-
-这会让项目从 demo 更接近真实 SaaS 产品。
-
-### 第三阶段：异步入库任务
+### 第二阶段：持久化异步入库任务
 
 当前已引入 `Ingestion Job`，但任务状态仍保存在 API 进程内。对于大文件、PDF、真实 embedding 和批量合同，下一步建议增强为持久化队列：
 
@@ -137,7 +130,7 @@ Supabase 已经承担 PostgreSQL + pgvector 职责，不需要再额外接入 Ai
 - 前端轮询进度、失败原因和重试状态。
 - 将当前 in-process adapter 替换为 BullMQ 或其他 durable queue。
 
-### 第四阶段：LLM 辅助合同审查
+### 第三阶段：LLM 辅助合同审查
 
 当前已经保留规则作为召回层，并加入模型解释与 schema 校验。下一步可以进一步增强：
 
@@ -146,7 +139,7 @@ Supabase 已经承担 PostgreSQL + pgvector 职责，不需要再额外接入 Ai
 - 对模型辅助审查增加单独评测集。
 - 保留 citation 和 `requiresHumanReview`，避免把模型输出当成最终法律意见。
 
-### 第五阶段：评测发布门禁
+### 第四阶段：评测发布门禁
 
 现在 CI 会运行评测，但还可以进一步做：
 

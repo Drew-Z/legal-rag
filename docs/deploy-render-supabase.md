@@ -60,6 +60,8 @@ AUTH_ENABLED=true
 AUTH_EMAIL=<你的登录邮箱>
 AUTH_NAME=Demo Owner
 AUTH_PASSWORD=<强密码>
+# 可选：多用户演示时用 AUTH_USERS_JSON 替代 AUTH_EMAIL/AUTH_PASSWORD
+# AUTH_USERS_JSON=[{"email":"owner@example.com","name":"Owner","password":"strong-password"}]
 AUTH_SESSION_SECRET=<至少32位随机字符串>
 AUTH_SESSION_TTL_HOURS=8
 AUTH_COOKIE_SECURE=true
@@ -109,7 +111,7 @@ https://<你的-web>.onrender.com
 
 演示链路：
 
-1. 使用 `AUTH_EMAIL` 和 `AUTH_PASSWORD` 登录。
+1. 使用 `AUTH_EMAIL` 和 `AUTH_PASSWORD` 登录；如果配置了 `AUTH_USERS_JSON`，使用其中任一用户登录。
 2. 创建或选择项目空间。
 3. 点击初始化公开数据集。
 4. 在智能问答页提问，确认返回 citations。
@@ -156,4 +158,3 @@ npm.cmd --workspace apps/api run validate:pgvector
 ```
 
 `validate:pgvector` 会读取本地 `.env` 中的 Supabase `DATABASE_URL` 和真实 embedding 配置，请确认 `.env` 不提交到仓库。
-

@@ -100,9 +100,31 @@ test("parseConfig enables optional single-user auth", () => {
   assert.equal(config.auth?.email, "owner@example.test");
   assert.equal(config.auth?.name, "Owner");
   assert.equal(config.auth?.password, "correct-password");
+  assert.deepEqual(config.auth?.users, [
+    {
+      email: "owner@example.test",
+      name: "Owner",
+      password: "correct-password"
+    }
+  ]);
   assert.equal(config.auth?.sessionSecret, "session-secret-for-tests");
   assert.equal(config.auth?.sessionTtlHours, 12);
   assert.equal(config.auth?.cookieSameSite, "None");
+});
+
+test("parseConfig supports multiple configured auth users", () => {
+  const config = parseConfig({
+    AUTH_ENABLED: "true",
+    AUTH_USERS_JSON: JSON.stringify([
+      { email: "owner@example.test", name: "Owner", password: "owner-password" },
+      { email: "reviewer@example.test", name: "Reviewer", password: "reviewer-password" }
+    ]),
+    AUTH_SESSION_SECRET: "session-secret-for-tests"
+  });
+
+  assert.equal(config.auth?.enabled, true);
+  assert.equal(config.auth?.users.length, 2);
+  assert.equal(config.auth?.users[1]?.email, "reviewer@example.test");
 });
 
 test("parseConfig rejects incomplete auth configuration", () => {
@@ -112,7 +134,7 @@ test("parseConfig rejects incomplete auth configuration", () => {
         AUTH_ENABLED: "true",
         AUTH_SESSION_SECRET: "session-secret-for-tests"
       }),
-    /AUTH_PASSWORD is required/
+    /AUTH_PASSWORD or AUTH_USERS_JSON is required/
   );
 
   assert.throws(

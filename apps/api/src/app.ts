@@ -3,7 +3,7 @@ import express, { type Request, type Response } from "express";
 import multer from "multer";
 import type { AuthStatus, ProjectSpace } from "@legal-rag/shared";
 import { recordAuditLog } from "./audit/audit-log.js";
-import { AuthService, requireAuth } from "./auth/session.js";
+import { AuthService, getRequestUser, requireAuth } from "./auth/session.js";
 import { splitIntoChunks } from "./chunks/splitter.js";
 import type { AppConfig } from "./config/env.js";
 import { seedPublicSafeDataset } from "./datasets/dataset-service.js";
@@ -112,16 +112,24 @@ export async function createApp(config: AppConfig) {
   app.get("/api/audit-logs", async (request, response) => {
     const rawProjectId = request.query.projectId ? String(request.query.projectId).trim() : "";
     const projectId = rawProjectId || undefined;
+    const user = getRequestUser(request);
+    const limit = Math.max(1, Math.min(Number(request.query.limit ?? 50), 100));
     if (projectId) {
-      const projects = await repository.listProjects();
-      if (!projects.some((project) => project.id === projectId)) {
+      if (!(await repository.userCanAccessProject(projectId, user.email))) {
         response.status(404).json({ error: "project not found" });
         return;
       }
+      response.json({ logs: await repository.listAuditLogs(projectId, limit) });
+      return;
     }
 
-    const limit = Math.max(1, Math.min(Number(request.query.limit ?? 50), 100));
-    response.json({ logs: await repository.listAuditLogs(projectId, limit) });
+    const visibleProjectIds = new Set(
+      (await repository.listProjectsForUser(user.email)).map((project) => project.id)
+    );
+    const logs = (await repository.listAuditLogs(undefined, 100))
+      .filter((entry) => !entry.projectId || visibleProjectIds.has(entry.projectId))
+      .slice(0, limit);
+    response.json({ logs });
   });
 
   registerIngestionJobRoutes(app, {
@@ -132,7 +140,7 @@ export async function createApp(config: AppConfig) {
   });
 
   app.get("/api/projects", async (_request, response) => {
-    response.json({ projects: await repository.listProjects() });
+    response.json({ projects: await repository.listProjectsForUser(getRequestUser(_request).email) });
   });
 
   app.post("/api/projects", async (request, response) => {
@@ -148,7 +156,8 @@ export async function createApp(config: AppConfig) {
       id: `project_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
       name,
       description: description || undefined,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      ownerEmail: getRequestUser(request).email
     };
     await repository.addProject(project);
     await recordAuditLog(repository, request, {
@@ -363,6 +372,11 @@ async function resolveProjectId(
 
   if (!projects.some((project) => project.id === projectId)) {
     response.status(404).json({ error: "project not found" });
+    return undefined;
+  }
+
+  if (!(await repository.userCanAccessProject(projectId, getRequestUser(request).email))) {
+    response.status(403).json({ error: "project access denied" });
     return undefined;
   }
 

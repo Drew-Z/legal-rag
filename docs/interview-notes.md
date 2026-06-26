@@ -63,7 +63,7 @@ MVP 优先按空行分段，识别“第 X 条”作为 section。chunk size 约
 
 ## 后续如何扩展为生产系统
 
-- 将当前单用户登录升级为多用户、角色权限、项目空间授权和审计日志。
+- 当前已支持配置型多用户、项目空间授权和审计日志；后续可升级为数据库用户表、邀请流程、外部 IdP 和完整 RBAC。
 - 增加 OCR 和表格/版式解析。
 - 使用 BullMQ 处理异步入库。
 - 引入专门 rerank 模型，并记录 rerank 前后召回指标。
@@ -97,4 +97,4 @@ Supabase direct connection 可能解析到 IPv6 地址，而部分托管运行�
 
 ## 简历描述
 
-法律智能机器人与合同审查 RAG 应用：基于 Vue 3、TypeScript、Express、Supabase PostgreSQL + pgvector 和 OpenAI-compatible 模型实现法律文档问答与合同风险审查；支持 Render 线上部署、单用户登录、公开安全数据集初始化、TXT/PDF/DOCX 上传、条款级 chunk、真实 embedding、混合召回、轻量 rerank、引用溯源、拒答评测和结构化风险报告；通过 provider adapter 和 vector store 抽象保留 mock 本地演示、pgvector 持久化和后续异步入库扩展能力。
+法律智能机器人与合同审查 RAG 应用：基于 Vue 3、TypeScript、Express、Supabase PostgreSQL + pgvector 和 OpenAI-compatible 模型实现法律文档问答与合同风险审查；支持 Render 线上部署、配置型登录门禁、项目空间授权、公开安全数据集初始化、TXT/PDF/DOCX 上传、条款级 chunk、真实 embedding、混合召回、轻量 rerank、引用溯源、拒答评测和结构化风险报告；通过 provider adapter 和 vector store 抽象保留 mock 本地演示、pgvector 持久化和后续异步入库扩展能力。

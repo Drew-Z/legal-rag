@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:unit": "tsx --test src/**/*.test.ts",
+    "test:unit": "tsx --test --test-concurrency=1 src/**/*.test.ts",
     "db:migrate": "tsx src/db/migrate.ts",
     "validate": "tsx src/validate.ts",
     "validate:pgvector": "tsx src/validate-pgvector.ts",

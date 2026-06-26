@@ -6,11 +6,21 @@ export interface ProjectSpace {
   description?: string;
   createdAt: string;
   isDefault?: boolean;
+  ownerEmail?: string;
 }
 
 export interface AuthUser {
   email: string;
   name: string;
+}
+
+export type ProjectRole = "owner" | "editor" | "viewer";
+
+export interface ProjectMember {
+  projectId: string;
+  userEmail: string;
+  role: ProjectRole;
+  createdAt: string;
 }
 
 export interface AuthStatus {

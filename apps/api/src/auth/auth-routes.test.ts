@@ -14,6 +14,10 @@ test("auth routes protect API routes when auth is enabled", async () => {
       email: "demo@example.test",
       name: "Demo User",
       password: "correct-password",
+      users: [
+        { email: "demo@example.test", name: "Demo User", password: "correct-password" },
+        { email: "other@example.test", name: "Other User", password: "other-password" }
+      ],
       sessionSecret: "session-secret-for-tests",
       cookieName: "legal_rag_session",
       secureCookie: false,
@@ -131,6 +135,54 @@ test("auth routes protect API routes when auth is enabled", async () => {
     assert.equal(jobs.status, 200);
     const jobsBody = (await jobs.json()) as { jobs: Array<{ id: string }> };
     assert.equal(jobsBody.jobs[0]?.id, createdJob.job.id);
+
+    const otherLogin = await fetch(`${baseUrl}/api/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: "other@example.test",
+        password: "other-password"
+      })
+    });
+    assert.equal(otherLogin.status, 200);
+    const otherCookie = otherLogin.headers.get("set-cookie");
+    if (!otherCookie) {
+      throw new Error("expected other login response to set a session cookie");
+    }
+
+    const otherProjects = await fetch(`${baseUrl}/api/projects`, {
+      headers: {
+        Cookie: otherCookie
+      }
+    });
+    assert.equal(otherProjects.status, 200);
+    const otherProjectsBody = (await otherProjects.json()) as { projects: Array<{ id: string }> };
+    assert.deepEqual(otherProjectsBody.projects.map((project) => project.id), ["project_default"]);
+
+    const deniedDocuments = await fetch(`${baseUrl}/api/documents?projectId=${created.project.id}`, {
+      headers: {
+        Cookie: otherCookie
+      }
+    });
+    assert.equal(deniedDocuments.status, 403);
+
+    const deniedJob = await fetch(`${baseUrl}/api/ingestion-jobs/${createdJob.job.id}`, {
+      headers: {
+        Cookie: otherCookie
+      }
+    });
+    assert.equal(deniedJob.status, 403);
+
+    const otherAuditLogs = await fetch(`${baseUrl}/api/audit-logs`, {
+      headers: {
+        Cookie: otherCookie
+      }
+    });
+    assert.equal(otherAuditLogs.status, 200);
+    const otherAuditBody = (await otherAuditLogs.json()) as { logs: Array<{ projectId?: string }> };
+    assert.deepEqual(otherAuditBody.logs, []);
   } finally {
     server.close();
   }

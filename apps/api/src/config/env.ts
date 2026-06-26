@@ -11,6 +11,11 @@ export interface AppConfig {
     email: string;
     name: string;
     password?: string;
+    users: Array<{
+      email: string;
+      name: string;
+      password?: string;
+    }>;
     sessionSecret?: string;
     cookieName: string;
     secureCookie: boolean;
@@ -78,14 +83,19 @@ function parseAuthConfig(env: NodeJS.ProcessEnv): NonNullable<AppConfig["auth"]>
   const enabled = env.AUTH_ENABLED === "true";
   const sessionTtlHours = Number(env.AUTH_SESSION_TTL_HOURS ?? 8);
   const cookieSameSite = parseCookieSameSite(env.AUTH_COOKIE_SAME_SITE);
+  const users = parseAuthUsers(env);
 
   if (!Number.isFinite(sessionTtlHours) || sessionTtlHours <= 0) {
     throw new Error("AUTH_SESSION_TTL_HOURS must be a positive number");
   }
 
   if (enabled) {
-    if (!env.AUTH_PASSWORD) {
-      throw new Error("AUTH_PASSWORD is required when AUTH_ENABLED=true");
+    if (!env.AUTH_PASSWORD && !env.AUTH_USERS_JSON) {
+      throw new Error("AUTH_PASSWORD or AUTH_USERS_JSON is required when AUTH_ENABLED=true");
+    }
+
+    if (users.some((user) => !user.password)) {
+      throw new Error("All configured auth users must include password when AUTH_ENABLED=true");
     }
 
     if (!env.AUTH_SESSION_SECRET || env.AUTH_SESSION_SECRET.length < 16) {
@@ -98,12 +108,52 @@ function parseAuthConfig(env: NodeJS.ProcessEnv): NonNullable<AppConfig["auth"]>
     email: env.AUTH_EMAIL ?? "demo@legal-rag.local",
     name: env.AUTH_NAME ?? "演示用户",
     password: env.AUTH_PASSWORD,
+    users,
     sessionSecret: env.AUTH_SESSION_SECRET,
     cookieName: env.AUTH_COOKIE_NAME ?? "legal_rag_session",
     secureCookie: env.AUTH_COOKIE_SECURE === "true",
     cookieSameSite,
     sessionTtlHours
   };
+}
+
+function parseAuthUsers(env: NodeJS.ProcessEnv): NonNullable<AppConfig["auth"]>["users"] {
+  if (env.AUTH_USERS_JSON) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(env.AUTH_USERS_JSON);
+    } catch {
+      throw new Error("AUTH_USERS_JSON must be valid JSON");
+    }
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error("AUTH_USERS_JSON must be a non-empty JSON array");
+    }
+    return parsed.map((user) => {
+      if (!user || typeof user !== "object") {
+        throw new Error("AUTH_USERS_JSON users must be objects");
+      }
+      const rawUser = user as Record<string, unknown>;
+      if (typeof rawUser.email !== "string" || typeof rawUser.name !== "string") {
+        throw new Error("AUTH_USERS_JSON users must include email and name");
+      }
+      if (rawUser.password !== undefined && typeof rawUser.password !== "string") {
+        throw new Error("AUTH_USERS_JSON user password must be a string");
+      }
+      return {
+        email: rawUser.email,
+        name: rawUser.name,
+        password: rawUser.password
+      };
+    });
+  }
+
+  return [
+    {
+      email: env.AUTH_EMAIL ?? "demo@legal-rag.local",
+      name: env.AUTH_NAME ?? "演示用户",
+      password: env.AUTH_PASSWORD
+    }
+  ];
 }
 
 function parseCookieSameSite(value: string | undefined): "Lax" | "Strict" | "None" {

@@ -1,5 +1,6 @@
 import type { Request } from "express";
-import type { AuditAction, AuditLogEntry, AuthUser } from "@legal-rag/shared";
+import type { AuditAction, AuditLogEntry } from "@legal-rag/shared";
+import { getRequestUser } from "../auth/session.js";
 import type { DocumentRepository } from "../store/repository.js";
 
 export async function recordAuditLog(
@@ -24,11 +25,4 @@ export async function recordAuditLog(
     summary: input.summary,
     createdAt: new Date().toISOString()
   });
-}
-
-function getRequestUser(request: Request): AuthUser {
-  return (request as Request & { authUser?: AuthUser }).authUser ?? {
-    email: "anonymous@local",
-    name: "Anonymous"
-  };
 }

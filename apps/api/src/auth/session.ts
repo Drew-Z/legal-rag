@@ -18,6 +18,12 @@ export class AuthService {
         enabled: false,
         email: "demo@legal-rag.local",
         name: "演示用户",
+        users: [
+          {
+            email: "demo@legal-rag.local",
+            name: "演示用户"
+          }
+        ],
         cookieName: "legal_rag_session",
         secureCookie: false,
         cookieSameSite: "Lax",
@@ -31,17 +37,23 @@ export class AuthService {
 
   get publicUser(): AuthUser {
     return {
-      email: this.config.email,
-      name: this.config.name
+      email: this.config.users[0]?.email ?? this.config.email,
+      name: this.config.users[0]?.name ?? this.config.name
     };
   }
 
   authenticate(email: string, password: string): AuthUser | undefined {
-    if (!this.enabled || email !== this.config.email || !this.config.password) {
+    const user = this.config.users.find((candidate) => candidate.email === email);
+    if (!this.enabled || !user?.password) {
       return undefined;
     }
 
-    return timingSafeTextEqual(password, this.config.password) ? this.publicUser : undefined;
+    return timingSafeTextEqual(password, user.password)
+      ? {
+          email: user.email,
+          name: user.name
+        }
+      : undefined;
   }
 
   getUserFromRequest(request: Request): AuthUser | undefined {
@@ -66,7 +78,7 @@ export class AuthService {
 
     try {
       const payload = JSON.parse(Buffer.from(payloadPart, "base64url").toString("utf8")) as SessionPayload;
-      if (payload.email !== this.config.email || payload.expiresAt <= Date.now()) {
+      if (!this.config.users.some((user) => user.email === payload.email) || payload.expiresAt <= Date.now()) {
         return undefined;
       }
 
@@ -122,6 +134,13 @@ export function requireAuth(auth: AuthService) {
     }
 
     response.status(401).json({ error: "authentication required" });
+  };
+}
+
+export function getRequestUser(request: Request): AuthUser {
+  return (request as Request & { authUser?: AuthUser }).authUser ?? {
+    email: "anonymous@local",
+    name: "Anonymous"
   };
 }
 

@@ -1,4 +1,4 @@
-import type { AuditLogEntry, DocumentChunk, LegalDocument, ProjectSpace } from "@legal-rag/shared";
+import type { AuditLogEntry, DocumentChunk, LegalDocument, ProjectMember, ProjectSpace } from "@legal-rag/shared";
 import type { Queryable } from "../db/pool.js";
 import { DEFAULT_PROJECT } from "./repository.js";
 import type { DocumentRepository } from "./repository.js";
@@ -9,20 +9,77 @@ export class PgRepository implements DocumentRepository {
   async addProject(project: ProjectSpace): Promise<void> {
     await this.db.query(
       `
-      INSERT INTO projects (id, name, description, created_at, is_default)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO projects (id, name, description, created_at, is_default, owner_email)
+      VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         description = EXCLUDED.description,
-        is_default = EXCLUDED.is_default
+        is_default = EXCLUDED.is_default,
+        owner_email = COALESCE(projects.owner_email, EXCLUDED.owner_email)
       `,
-      [project.id, project.name, project.description, project.createdAt, project.isDefault ?? false]
+      [project.id, project.name, project.description, project.createdAt, project.isDefault ?? false, project.ownerEmail]
     );
+
+    if (project.ownerEmail) {
+      await this.addProjectMember({
+        projectId: project.id,
+        userEmail: project.ownerEmail,
+        role: "owner",
+        createdAt: project.createdAt
+      });
+    }
   }
 
   async listProjects(): Promise<ProjectSpace[]> {
     const result = await this.db.query("SELECT * FROM projects ORDER BY is_default DESC, created_at DESC");
     return result.rows.map(rowToProject);
+  }
+
+  async listProjectsForUser(userEmail: string): Promise<ProjectSpace[]> {
+    const result = await this.db.query(
+      `
+      SELECT DISTINCT projects.*
+      FROM projects
+      LEFT JOIN project_members ON project_members.project_id = projects.id
+      WHERE projects.is_default = true
+        OR project_members.user_email = $1
+        OR projects.owner_email IS NULL
+      ORDER BY projects.is_default DESC, projects.created_at DESC
+      `,
+      [userEmail]
+    );
+    return result.rows.map(rowToProject);
+  }
+
+  async addProjectMember(member: ProjectMember): Promise<void> {
+    await this.db.query(
+      `
+      INSERT INTO project_members (project_id, user_email, role, created_at)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (project_id, user_email) DO UPDATE SET
+        role = EXCLUDED.role
+      `,
+      [member.projectId, member.userEmail, member.role, member.createdAt]
+    );
+  }
+
+  async userCanAccessProject(projectId: string, userEmail: string): Promise<boolean> {
+    const result = await this.db.query(
+      `
+      SELECT 1
+      FROM projects
+      LEFT JOIN project_members ON project_members.project_id = projects.id
+      WHERE projects.id = $1
+        AND (
+          projects.is_default = true
+          OR project_members.user_email = $2
+          OR projects.owner_email IS NULL
+        )
+      LIMIT 1
+      `,
+      [projectId, userEmail]
+    );
+    return Boolean(result.rows[0]);
   }
 
   async recordAuditLog(entry: AuditLogEntry): Promise<void> {
@@ -145,7 +202,8 @@ function rowToProject(row: Record<string, unknown>): ProjectSpace {
     name: String(row.name),
     description: optionalString(row.description),
     createdAt: toIsoString(row.created_at),
-    isDefault: Boolean(row.is_default)
+    isDefault: Boolean(row.is_default),
+    ownerEmail: optionalString(row.owner_email)
   };
 }
 
