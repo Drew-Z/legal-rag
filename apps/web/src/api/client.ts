@@ -6,7 +6,8 @@ import type {
   LegalDocument,
   ProjectSpace,
   QualityReport,
-  RagAnswer
+  RagAnswer,
+  ReviewEvaluationReport
 } from "@legal-rag/shared";
 
 export interface ImportTextResponse {
@@ -64,6 +65,7 @@ export const api = {
     }),
   qualityReport: () => request<QualityReport>("/api/quality/report"),
   evaluationReport: () => request<EvaluationReport>("/api/evaluation/report"),
+  reviewEvaluationReport: () => request<ReviewEvaluationReport>("/api/review/evaluation/report"),
   listProjects: () => request<{ projects: ProjectSpace[] }>("/api/projects"),
   createProject: (name: string, description = "") =>
     request<CreateProjectResponse>("/api/projects", {

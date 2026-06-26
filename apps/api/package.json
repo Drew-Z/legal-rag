@@ -12,6 +12,7 @@
     "validate": "tsx src/validate.ts",
     "validate:pgvector": "tsx src/validate-pgvector.ts",
     "evaluate": "tsx src/evaluate.ts",
+    "evaluate:review": "tsx src/evaluate-review.ts",
     "start": "node dist/server.js"
   },
   "dependencies": {

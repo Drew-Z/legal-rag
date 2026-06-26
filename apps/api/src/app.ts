@@ -21,6 +21,7 @@ import {
 } from "./model-providers/openai-compatible.js";
 import { buildQualityReport } from "./quality/quality-service.js";
 import { RagService } from "./rag/rag-service.js";
+import { buildReviewEvaluationReport } from "./review/review-eval-service.js";
 import { reviewContract } from "./review/review-service.js";
 import { PgRepository } from "./store/pg-repository.js";
 import { DEFAULT_PROJECT, DEFAULT_PROJECT_ID, type DocumentRepository, Repository } from "./store/repository.js";
@@ -104,6 +105,10 @@ export async function createApp(config: AppConfig) {
 
   app.get("/api/evaluation/report", async (_request, response) => {
     response.json(await buildEvaluationReport());
+  });
+
+  app.get("/api/review/evaluation/report", async (_request, response) => {
+    response.json(await buildReviewEvaluationReport());
   });
 
   app.get("/api/projects", async (_request, response) => {

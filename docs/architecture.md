@@ -33,10 +33,11 @@ flowchart LR
 - `samples/sample-contract.txt`: demo contract used for local validation.
 - `datasets/public-safe/legal-public-dataset.jsonl`: public-safe legal snippets and synthetic contract samples.
 - `eval/rag-eval-set.json`: citation and refusal evaluation cases.
+- `eval/contract-review-eval-set.json`: labeled contract-risk fixtures for review recall evaluation.
 - `VECTOR_STORE=pgvector`: persists documents, chunks, metadata, and embeddings in PostgreSQL + pgvector.
 - `projects`: workspace boundary for documents, duplicate detection, retrieval, and contract review. `project_default` keeps local demo behavior backward-compatible.
 - `AUTH_ENABLED=true`: optional single-user login gate for deployed demos. It protects business APIs with a signed HTTP-only cookie while leaving local demos disabled by default.
-- `.github/workflows/ci.yml`: no-secret CI path for typecheck, unit tests, validation, evaluation, build, and Docker Compose config checks.
+- `.github/workflows/ci.yml`: no-secret CI path for typecheck, unit tests, validation, RAG evaluation, contract-review evaluation, build, and Docker Compose config checks.
 
 ## RAG Flow
 
@@ -47,7 +48,7 @@ flowchart LR
 5. `MockEmbeddingProvider` creates deterministic local embeddings when no API key is available; `OpenAICompatibleEmbeddingProvider` can call a real embedding model such as `Qwen3-Embedding-0.6B`.
 6. `MemoryVectorStore` stores chunks and vectors in process memory; `PgVectorStore` persists chunk embeddings in PostgreSQL + pgvector.
 7. `POST /api/rag/query` rewrites short contextual questions, embeds the rewritten question, recalls top 20 candidates from both vector and keyword search inside the selected project, filters weak candidates, reranks down to top 5, generates a grounded answer, and returns citations plus diagnostics.
-8. `GET /api/quality/report` aggregates runtime configuration, corpus size, the deterministic RAG eval suite, and readiness checks for the web quality panel.
+8. `GET /api/quality/report` aggregates runtime configuration, corpus size, the deterministic RAG eval suite, contract-review eval suite, and readiness checks for the web quality panel.
 9. `GET /api/evaluation/report` exposes every deterministic eval result so the web UI can show citation-hit, expected topic, refusal evidence, and aggregate accuracy metrics, not just a summary score.
 10. When the query is outside the current legal/contract corpus or retrieval evidence is too weak, the RAG service refuses with a "current materials cannot confirm" answer and no citations.
 
@@ -63,10 +64,12 @@ The MVP review service uses deterministic legal-risk rules. This keeps the demo 
 
 The service returns both structured JSON and readable Markdown.
 
+`GET /api/review/evaluation/report` runs labeled fixtures against the review service and reports expected risks, matched risks, missing risks, and overall risk recall. This keeps the rule-based review surface measurable while the project is still deterministic and demo-friendly.
+
 ## Extension Points
 
 - Switch between mock/memory and OpenAI-compatible/pgvector with environment variables.
 - Move document processing to BullMQ when ingestion becomes asynchronous.
 - Replace the current lightweight rerank with a cross-encoder or model reranker.
 - Add OCR and table-aware parsing for scanned or complex contracts.
-- Add risk-review recall evaluation against labeled contract-risk fixtures.
+- Add historical trend storage for RAG and review evaluation reports.

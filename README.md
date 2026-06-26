@@ -14,13 +14,15 @@
 - 查询增强：追问重写、hybrid recall、相似度阈值过滤、轻量 rerank
 - RAG 问答，返回 answer + citations
 - 合同风险审查，返回结构化 JSON 和 Markdown
+- 合同审查评测集，衡量标注风险召回率
 - Vue 前端三页工作台：知识库、智能问答、合同审查、上传进度、问答历史、来源高亮、报告导出
 - 问答诊断会展示回答来源：真实模型、本地回退或资料不足拒答
 - 质量面板展示运行时模型、pgvector 状态、知识库规模、评测通过率和 readiness checks
 - 评测报告页面展示每条 citation 命中和拒答用例的通过原因
 - 质量报告展示 citation 命中率、可回答准确率和拒答准确率
+- 质量报告展示合同审查风险召回率
 - RAG 评测集，覆盖 citation 命中和资料不足拒答
-- GitHub Actions CI 覆盖 typecheck、unit test、validate、evaluate、build 和 Docker Compose 配置检查
+- GitHub Actions CI 覆盖 typecheck、unit test、validate、evaluate、evaluate:review、build 和 Docker Compose 配置检查
 - 示例合同和面试讲解材料
 
 ## 技术栈
@@ -175,6 +177,14 @@ GET /api/evaluation/report
 
 返回评测总数、通过数、拒答用例数和每条用例的通过原因、回答摘要、引用文本，可用于质量面板中的详细评测报告。
 
+### 合同审查评测报告
+
+```http
+GET /api/review/evaluation/report
+```
+
+返回标注合同风险用例、期望风险、命中风险、缺失风险和整体召回率，用于衡量合同审查规则是否覆盖核心风险类型。
+
 ### 项目空间
 
 ```http
@@ -325,12 +335,13 @@ MVP 使用可解释规则识别高频合同风险：
 npm.cmd run typecheck
 npm.cmd --workspace apps/api run validate
 npm.cmd --workspace apps/api run evaluate
+npm.cmd --workspace apps/api run evaluate:review
 npm.cmd --workspace apps/api run db:migrate
 npm.cmd --workspace apps/api run validate:pgvector
 npm.cmd run build
 ```
 
-`validate` 覆盖健康检查、文本导入、重复导入、数据集初始化、TXT 上传、问答和合同审查。`evaluate` 会读取 `eval/rag-eval-set.json`，检查可回答问题的引用命中，以及越界问题是否拒答。质量面板会展示总通过率、citation 命中率、可回答准确率和拒答准确率。
+`validate` 覆盖健康检查、文本导入、重复导入、数据集初始化、TXT 上传、问答、合同审查和评测报告。`evaluate` 会读取 `eval/rag-eval-set.json`，检查可回答问题的引用命中，以及越界问题是否拒答。`evaluate:review` 会读取 `eval/contract-review-eval-set.json`，检查合同审查规则对标注风险的召回。质量面板会展示总通过率、citation 命中率、可回答准确率、拒答准确率和合同审查风险召回率。
 `validate:pgvector` 会使用 `.env` 中的外部 PostgreSQL 和真实 embedding 模型，验证数据集入库、pgvector 检索和引用返回。
 
 CI 工作流位于 `.github/workflows/ci.yml`，无密钥环境会运行：
@@ -340,6 +351,7 @@ npm.cmd run typecheck
 npm.cmd --workspace apps/api run test:unit
 npm.cmd --workspace apps/api run validate
 npm.cmd --workspace apps/api run evaluate
+npm.cmd --workspace apps/api run evaluate:review
 npm.cmd run build
 docker compose -f docker-compose.prod.yml config
 ```
@@ -354,6 +366,7 @@ docker compose -f docker-compose.prod.yml config
 - 低幻觉设计：只基于 retrieved chunks 回答，关键结论返回 citations。
 - 查询质量增强：问题重写、hybrid search、阈值过滤和 rerank。
 - 工程抽象清晰：embedding provider、vector store、review service 可替换。
+- 可量化质量：RAG citation/refusal 评测 + 合同审查风险召回评测。
 - 无 key 可演示：mock embedding 保证本地可运行。
 - 可扩展方向明确：pgvector、BullMQ、真实模型、模型 rerank。
 

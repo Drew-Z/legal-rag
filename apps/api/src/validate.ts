@@ -47,6 +47,18 @@ try {
   assert(evaluation.failed === 0, "expected evaluation report to pass");
   assert(evaluation.results.length === evaluation.total, "expected detailed evaluation results");
 
+  const reviewEvaluation = await getJson<{
+    total: number;
+    passed: number;
+    failed: number;
+    recall: number;
+    results: unknown[];
+  }>("/api/review/evaluation/report");
+  assert(reviewEvaluation.total > 0, "expected review evaluation cases");
+  assert(reviewEvaluation.failed === 0, "expected review evaluation report to pass");
+  assert(reviewEvaluation.recall === 1, "expected review evaluation recall to be 100%");
+  assert(reviewEvaluation.results.length === reviewEvaluation.total, "expected detailed review evaluation results");
+
   const createdProject = await postJson<{ project: { id: string; name: string } }>("/api/projects", {
     name: "validation workspace"
   });

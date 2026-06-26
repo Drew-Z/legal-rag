@@ -1,5 +1,6 @@
 import type { AppConfig } from "../config/env.js";
 import { runMockRagEvaluation, type EvalSummary } from "../evaluation/eval-service.js";
+import { buildReviewEvaluationReport } from "../review/review-eval-service.js";
 import type { DocumentRepository } from "../store/repository.js";
 
 export type QualityStatus = "pass" | "warn" | "fail";
@@ -22,6 +23,14 @@ export interface QualityReport {
     chunkCount: number;
   };
   eval: Omit<EvalSummary, "results">;
+  reviewEval: {
+    total: number;
+    passed: number;
+    failed: number;
+    expectedRiskCount: number;
+    matchedRiskCount: number;
+    recall: number;
+  };
   checks: QualityCheck[];
 }
 
@@ -32,6 +41,7 @@ export async function buildQualityReport(
   const documents = await repository.listDocuments();
   const chunks = await repository.allChunks();
   const evalSummary = await runMockRagEvaluation();
+  const reviewEvalSummary = await buildReviewEvaluationReport();
 
   return {
     generatedAt: new Date().toISOString(),
@@ -53,12 +63,21 @@ export async function buildQualityReport(
       answerableAccuracy: evalSummary.answerableAccuracy,
       refusalAccuracy: evalSummary.refusalAccuracy
     },
+    reviewEval: {
+      total: reviewEvalSummary.total,
+      passed: reviewEvalSummary.passed,
+      failed: reviewEvalSummary.failed,
+      expectedRiskCount: reviewEvalSummary.expectedRiskCount,
+      matchedRiskCount: reviewEvalSummary.matchedRiskCount,
+      recall: reviewEvalSummary.recall
+    },
     checks: [
       runtimeModelCheck(config),
       vectorStoreCheck(config),
       corpusCheck(documents.length, chunks.length),
       evalCheck(evalSummary),
-      citationGuardrailCheck(evalSummary)
+      citationGuardrailCheck(evalSummary),
+      reviewEvalCheck(reviewEvalSummary)
     ]
   };
 }
@@ -132,6 +151,15 @@ function citationGuardrailCheck(evalSummary: EvalSummary): QualityCheck {
     label: "引用与拒答护栏",
     status: evalSummary.failed === 0 && evalSummary.refusalCases > 0 ? "pass" : "warn",
     detail: `引用命中率 ${formatPercent(evalSummary.citationAccuracy)}，拒答准确率 ${formatPercent(evalSummary.refusalAccuracy)}`
+  };
+}
+
+function reviewEvalCheck(evalSummary: { failed: number; matchedRiskCount: number; expectedRiskCount: number; recall: number }): QualityCheck {
+  return {
+    id: "review-eval",
+    label: "合同审查召回",
+    status: evalSummary.failed === 0 ? "pass" : "fail",
+    detail: `${evalSummary.matchedRiskCount}/${evalSummary.expectedRiskCount} 个标注风险命中，召回率 ${formatPercent(evalSummary.recall)}`
   };
 }
 

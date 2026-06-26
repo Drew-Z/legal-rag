@@ -9,7 +9,8 @@ import type {
   LegalDocument,
   ProjectSpace,
   QualityReport,
-  RagAnswer
+  RagAnswer,
+  ReviewEvaluationReport
 } from "@legal-rag/shared";
 import { api } from "./api/client";
 import { sampleContract } from "./data/sampleContract";
@@ -44,6 +45,7 @@ const qaHistory = ref<QaHistoryItem[]>([]);
 const reviewResult = ref<ContractReviewResult | null>(null);
 const qualityReport = ref<QualityReport | null>(null);
 const evaluationReport = ref<EvaluationReport | null>(null);
+const reviewEvaluationReport = ref<ReviewEvaluationReport | null>(null);
 const qualityLoading = ref(false);
 const apiStatus = ref("连接中");
 const busy = ref(false);
@@ -77,6 +79,7 @@ async function bootstrapWorkspace() {
   await refreshDocuments();
   await loadQualityReport();
   await loadEvaluationReport();
+  await loadReviewEvaluationReport();
 }
 
 async function checkHealth() {
@@ -129,6 +132,7 @@ async function logout() {
     reviewResult.value = null;
     qualityReport.value = null;
     evaluationReport.value = null;
+    reviewEvaluationReport.value = null;
   }
 }
 
@@ -208,12 +212,25 @@ async function loadEvaluationReport() {
   }
 }
 
+async function loadReviewEvaluationReport() {
+  try {
+    reviewEvaluationReport.value = await api.reviewEvaluationReport();
+  } catch (error) {
+    notice.value = error instanceof Error ? error.message : "合同审查评测加载失败";
+  }
+}
+
 async function refreshQualityReports() {
   qualityLoading.value = true;
   try {
-    const [quality, evaluation] = await Promise.all([api.qualityReport(), api.evaluationReport()]);
+    const [quality, evaluation, reviewEvaluation] = await Promise.all([
+      api.qualityReport(),
+      api.evaluationReport(),
+      api.reviewEvaluationReport()
+    ]);
     qualityReport.value = quality;
     evaluationReport.value = evaluation;
+    reviewEvaluationReport.value = reviewEvaluation;
   } catch (error) {
     notice.value = error instanceof Error ? error.message : "质量报告加载失败";
   } finally {
@@ -718,6 +735,11 @@ function formatPercent(value: number) {
               <strong>{{ formatPercent(qualityReport.eval.refusalAccuracy) }}</strong>
               <small>越界问题无引用拒答</small>
             </article>
+            <article>
+              <span>审查召回率</span>
+              <strong>{{ formatPercent(qualityReport.reviewEval.recall) }}</strong>
+              <small>{{ qualityReport.reviewEval.matchedRiskCount }}/{{ qualityReport.reviewEval.expectedRiskCount }} 个风险命中</small>
+            </article>
           </div>
           <div v-else class="empty-state">点击刷新后显示运行时和评测摘要。</div>
           <button class="primary" :disabled="qualityLoading" @click="refreshQualityReports">
@@ -767,6 +789,32 @@ function formatPercent(value: number) {
             </article>
           </div>
           <div v-else class="empty-state">评测报告会列出 citation 命中和拒答用例。</div>
+        </div>
+
+        <div class="panel result-panel eval-panel">
+          <div class="panel-heading">
+            <h2>合同审查用例</h2>
+            <span v-if="reviewEvaluationReport">
+              {{ reviewEvaluationReport.passed }}/{{ reviewEvaluationReport.total }} 通过
+            </span>
+          </div>
+          <div v-if="reviewEvaluationReport" class="eval-list">
+            <article v-for="item in reviewEvaluationReport.results" :key="item.id" class="eval-row">
+              <div>
+                <strong>{{ item.title }}</strong>
+                <span :class="['check-badge', item.passed ? 'pass' : 'fail']">
+                  {{ item.passed ? "pass" : "fail" }}
+                </span>
+              </div>
+              <div class="eval-meta">
+                <span>expected {{ item.expectedRisks.join(" / ") }}</span>
+                <span>matched {{ item.matchedRisks.join(" / ") || "none" }}</span>
+              </div>
+              <p v-if="item.missingRisks.length > 0">缺失：{{ item.missingRisks.join("、") }}</p>
+              <small>{{ item.actualRisks.join("、") || "未识别风险" }}</small>
+            </article>
+          </div>
+          <div v-else class="empty-state">合同审查评测会列出标注风险的命中情况。</div>
         </div>
       </section>
     </main>

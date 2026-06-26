@@ -35,6 +35,9 @@ jobs:
       - name: RAG evaluation
         run: npm --workspace apps/api run evaluate
 
+      - name: Contract review evaluation
+        run: npm --workspace apps/api run evaluate:review
+
       - name: Build
         run: npm run build
 

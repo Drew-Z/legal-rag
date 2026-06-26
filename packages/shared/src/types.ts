@@ -103,6 +103,28 @@ export interface ContractReviewResult {
   markdown: string;
 }
 
+export interface ReviewEvaluationResult {
+  id: string;
+  title: string;
+  passed: boolean;
+  expectedRisks: string[];
+  matchedRisks: string[];
+  missingRisks: string[];
+  actualRisks: string[];
+  markdown: string;
+}
+
+export interface ReviewEvaluationReport {
+  generatedAt: string;
+  total: number;
+  passed: number;
+  failed: number;
+  expectedRiskCount: number;
+  matchedRiskCount: number;
+  recall: number;
+  results: ReviewEvaluationResult[];
+}
+
 export type QualityStatus = "pass" | "warn" | "fail";
 
 export interface QualityCheck {
@@ -131,6 +153,14 @@ export interface QualityReport {
     citationAccuracy: number;
     answerableAccuracy: number;
     refusalAccuracy: number;
+  };
+  reviewEval: {
+    total: number;
+    passed: number;
+    failed: number;
+    expectedRiskCount: number;
+    matchedRiskCount: number;
+    recall: number;
   };
   checks: QualityCheck[];
 }
