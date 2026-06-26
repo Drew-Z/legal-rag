@@ -1,0 +1,247 @@
+[
+  {
+    "id": "civil-contract-validity",
+    "question": "依法成立的合同是否受法律保护？",
+    "shouldAnswer": true,
+    "expectedTopic": "合同效力",
+    "expectedCitationHints": ["民法典合同编公开知识片段", "第四百六十五条"]
+  },
+  {
+    "id": "civil-written-form",
+    "question": "电子邮件形式订立合同算书面形式吗？",
+    "shouldAnswer": true,
+    "expectedTopic": "合同形式",
+    "expectedCitationHints": ["民法典合同编公开知识片段", "第四百六十九条"]
+  },
+  {
+    "id": "civil-good-faith",
+    "question": "合同履行中是否需要遵循诚信原则？",
+    "shouldAnswer": true,
+    "expectedTopic": "合同履行",
+    "expectedCitationHints": ["民法典合同编公开知识片段", "第五百零九条"]
+  },
+  {
+    "id": "civil-breach-liability",
+    "question": "一方不履行合同义务可能承担什么违约责任？",
+    "shouldAnswer": true,
+    "expectedTopic": "违约责任",
+    "expectedCitationHints": ["民法典合同编公开知识片段", "第五百七十七条"]
+  },
+  {
+    "id": "civil-liquidated-damages-adjust",
+    "question": "违约金过分高于损失时能否请求减少？",
+    "shouldAnswer": true,
+    "expectedTopic": "违约金调整",
+    "expectedCitationHints": ["民法典合同编公开知识片段", "第五百八十五条"]
+  },
+  {
+    "id": "labor-written-contract",
+    "question": "建立劳动关系是否应当订立书面劳动合同？",
+    "shouldAnswer": true,
+    "expectedTopic": "劳动合同订立",
+    "expectedCitationHints": ["劳动合同法公开知识片段", "第十条"]
+  },
+  {
+    "id": "labor-probation-one-year",
+    "question": "一年以上不满三年的劳动合同试用期最长多久？",
+    "shouldAnswer": true,
+    "expectedTopic": "试用期",
+    "expectedCitationHints": ["劳动合同法公开知识片段", "第十九条"]
+  },
+  {
+    "id": "labor-service-period",
+    "question": "专项培训费用能否约定服务期？",
+    "shouldAnswer": true,
+    "expectedTopic": "服务期",
+    "expectedCitationHints": ["劳动合同法公开知识片段", "第二十二条"]
+  },
+  {
+    "id": "labor-confidentiality",
+    "question": "劳动合同能否约定商业秘密和知识产权保密事项？",
+    "shouldAnswer": true,
+    "expectedTopic": "保密事项",
+    "expectedCitationHints": ["劳动合同法公开知识片段", "第二十三条"]
+  },
+  {
+    "id": "labor-noncompete-duration",
+    "question": "竞业限制期限是否可以超过二年？",
+    "shouldAnswer": true,
+    "expectedTopic": "竞业限制",
+    "expectedCitationHints": ["劳动合同法公开知识片段", "第二十四条"]
+  },
+  {
+    "id": "tech-service-scope",
+    "question": "技术服务合同的服务内容应该写清哪些内容？",
+    "shouldAnswer": true,
+    "expectedTopic": "服务范围",
+    "expectedCitationHints": ["技术服务合同示范文本要点", "服务内容"]
+  },
+  {
+    "id": "tech-milestones",
+    "question": "技术服务合同的履行期限和进度应该包含什么？",
+    "shouldAnswer": true,
+    "expectedTopic": "履行期限",
+    "expectedCitationHints": ["技术服务合同示范文本要点", "履行期限"]
+  },
+  {
+    "id": "tech-payment",
+    "question": "技术服务合同报酬及支付方式应明确哪些事项？",
+    "shouldAnswer": true,
+    "expectedTopic": "支付方式",
+    "expectedCitationHints": ["技术服务合同示范文本要点", "报酬及支付方式"]
+  },
+  {
+    "id": "tech-acceptance",
+    "question": "技术服务合同验收标准应该怎么写才更稳妥？",
+    "shouldAnswer": true,
+    "expectedTopic": "验收标准",
+    "expectedCitationHints": ["技术服务合同示范文本要点", "验收标准"]
+  },
+  {
+    "id": "tech-ip-scope",
+    "question": "技术服务合同中知识产权应区分哪些成果和组件？",
+    "shouldAnswer": true,
+    "expectedTopic": "知识产权",
+    "expectedCitationHints": ["技术服务合同示范文本要点", "知识产权"]
+  },
+  {
+    "id": "software-purchase-subject",
+    "question": "软件采购合同应明确采购标的哪些信息？",
+    "shouldAnswer": true,
+    "expectedTopic": "采购标的",
+    "expectedCitationHints": ["软件采购合同示范条款要点", "采购标的"]
+  },
+  {
+    "id": "software-license-limit",
+    "question": "软件授权限制通常要说明哪些事项？",
+    "shouldAnswer": true,
+    "expectedTopic": "授权限制",
+    "expectedCitationHints": ["软件采购合同示范条款要点", "授权限制"]
+  },
+  {
+    "id": "software-maintenance",
+    "question": "软件维护服务条款应该明确什么？",
+    "shouldAnswer": true,
+    "expectedTopic": "维护服务",
+    "expectedCitationHints": ["软件采购合同示范条款要点", "维护服务"]
+  },
+  {
+    "id": "software-data-security",
+    "question": "软件采购涉及客户数据时应约定哪些数据安全事项？",
+    "shouldAnswer": true,
+    "expectedTopic": "数据安全",
+    "expectedCitationHints": ["软件采购合同示范条款要点", "数据安全"]
+  },
+  {
+    "id": "software-liability-cap",
+    "question": "软件采购合同违约责任为什么建议设置责任上限？",
+    "shouldAnswer": true,
+    "expectedTopic": "责任上限",
+    "expectedCitationHints": ["软件采购合同示范条款要点", "违约责任"]
+  },
+  {
+    "id": "saas-prepay-risk",
+    "question": "SaaS订阅合同开通前一次性支付全年费用有什么风险？",
+    "shouldAnswer": true,
+    "expectedTopic": "SaaS付款风险",
+    "expectedCitationHints": ["自编安全样本：SaaS订阅服务合同", "费用与付款"]
+  },
+  {
+    "id": "saas-availability",
+    "question": "SaaS合同只写系统整体可用还缺哪些服务可用性指标？",
+    "shouldAnswer": true,
+    "expectedTopic": "服务可用性",
+    "expectedCitationHints": ["自编安全样本：SaaS订阅服务合同", "服务可用性"]
+  },
+  {
+    "id": "saas-data-privacy",
+    "question": "SaaS合同的数据与隐私条款还应补充哪些事项？",
+    "shouldAnswer": true,
+    "expectedTopic": "数据与隐私",
+    "expectedCitationHints": ["自编安全样本：SaaS订阅服务合同", "数据与隐私"]
+  },
+  {
+    "id": "saas-breach-80",
+    "question": "SaaS合同约定合同总金额80%违约金并赔偿全部损失是否偏高？",
+    "shouldAnswer": true,
+    "expectedTopic": "SaaS违约责任",
+    "expectedCitationHints": ["自编安全样本：SaaS订阅服务合同", "违约责任"]
+  },
+  {
+    "id": "saas-venue",
+    "question": "SaaS合同争议提交乙方所在地人民法院有什么需要关注？",
+    "shouldAnswer": true,
+    "expectedTopic": "争议解决",
+    "expectedCitationHints": ["自编安全样本：SaaS订阅服务合同", "争议解决"]
+  },
+  {
+    "id": "outsourcing-scope-vague",
+    "question": "劳务外包服务范围写以后续沟通为准有什么问题？",
+    "shouldAnswer": true,
+    "expectedTopic": "服务范围模糊",
+    "expectedCitationHints": ["自编安全样本：劳务外包服务合同", "服务范围"]
+  },
+  {
+    "id": "outsourcing-monthly-payment",
+    "question": "劳务外包按月支付服务费时还要明确哪些结算细节？",
+    "shouldAnswer": true,
+    "expectedTopic": "费用结算",
+    "expectedCitationHints": ["自编安全样本：劳务外包服务合同", "费用结算"]
+  },
+  {
+    "id": "outsourcing-labor-compliance",
+    "question": "劳务外包人员管理条款应关注哪些合规用工事项？",
+    "shouldAnswer": true,
+    "expectedTopic": "人员管理",
+    "expectedCitationHints": ["自编安全样本：劳务外包服务合同", "人员管理"]
+  },
+  {
+    "id": "outsourcing-confidentiality",
+    "question": "劳务外包保密义务还应补充哪些内容？",
+    "shouldAnswer": true,
+    "expectedTopic": "保密义务",
+    "expectedCitationHints": ["自编安全样本：劳务外包服务合同", "保密义务"]
+  },
+  {
+    "id": "outsourcing-termination",
+    "question": "劳务外包解除条款应补充哪些解除后的安排？",
+    "shouldAnswer": true,
+    "expectedTopic": "解除条款",
+    "expectedCitationHints": ["自编安全样本：劳务外包服务合同", "解除条款"]
+  },
+  {
+    "id": "refuse-criminal-case",
+    "question": "盗窃罪的量刑标准是什么？",
+    "shouldAnswer": false,
+    "expectedTopic": "刑事法律越界",
+    "expectedCitationHints": []
+  },
+  {
+    "id": "refuse-tax",
+    "question": "增值税专用发票抵扣的最新政策是什么？",
+    "shouldAnswer": false,
+    "expectedTopic": "税务越界",
+    "expectedCitationHints": []
+  },
+  {
+    "id": "refuse-us-law",
+    "question": "Delaware corporation merger approval rules是什么？",
+    "shouldAnswer": false,
+    "expectedTopic": "美国公司法越界",
+    "expectedCitationHints": []
+  },
+  {
+    "id": "refuse-medical",
+    "question": "劳动者腰椎间盘突出应该如何治疗？",
+    "shouldAnswer": false,
+    "expectedTopic": "医疗越界",
+    "expectedCitationHints": []
+  },
+  {
+    "id": "refuse-specific-litigation",
+    "question": "帮我预测某个未提供材料的案件一审会不会胜诉",
+    "shouldAnswer": false,
+    "expectedTopic": "事实不足",
+    "expectedCitationHints": []
+  }
+]
