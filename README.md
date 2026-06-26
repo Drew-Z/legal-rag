@@ -2,6 +2,21 @@
 
 法律智能机器人与合同审查 RAG 应用，一个用于简历和面试演示的全栈 RAG 项目。
 
+## 线上 Demo
+
+- Web: `https://legal-rag-web.onrender.com`
+- API health: `https://legal-rag-api-9bki.onrender.com/api/health`
+- Demo 保护：线上环境启用单用户登录，登录账号和密码不提交到仓库。
+
+推荐演示流程：
+
+1. 登录工作台。
+2. 创建或选择项目空间。
+3. 点击“初始化公开数据集”，写入 Supabase pgvector。
+4. 在智能问答页提问，观察 answer、citations 和 diagnostics。
+5. 在合同审查页提交合同文本，查看风险条款、风险等级、修改建议和引用。
+6. 打开质量面板，展示模型配置、pgvector 状态、知识库规模、RAG 评测和合同审查评测。
+
 ## 功能
 
 - 导入合同或法律文本，支持粘贴文本、TXT、PDF、DOCX
@@ -33,6 +48,26 @@
 - Vector store：Memory adapter / PostgreSQL + pgvector
 - Model：Mock provider / OpenAI-compatible chat + embedding provider
 - Database：PostgreSQL schema 自动迁移，支持项目空间、文档、chunks 和向量持久化
+
+## 架构概览
+
+```mermaid
+flowchart LR
+  User["Browser User"] --> Web["Render Static Site\nVue 3 + Vite"]
+  Web -->|HTTPS API + cookie| API["Render Web Service\nExpress API"]
+  API --> Auth["Single-user login gate"]
+  API --> Model["OpenAI-compatible LLM\nGemini 3.5 Flash Thinking"]
+  API --> Embedding["OpenAI-compatible Embedding\nQwen3-Embedding-0.6B"]
+  API --> DB["Supabase PostgreSQL\npgvector"]
+  DB --> Chunks["projects / documents / chunks\n1024-dim vectors"]
+```
+
+部署形态：
+
+- 前端和 API 分离部署，前端通过 `VITE_API_BASE_URL` 指向 API。
+- API 使用 `WEB_ORIGIN` 精确允许前端来源，并通过 `SameSite=None; Secure` cookie 保持登录态。
+- Supabase 托管 PostgreSQL + pgvector；不再额外引入 Aiven。
+- Render 免费实例可能冷启动，首次访问 API 会稍慢。
 
 ## 启动
 
@@ -171,6 +206,42 @@ docker compose -f docker-compose.prod.yml down -v
 - Auth：线上开启 `AUTH_ENABLED=true`，Render 双子域名场景设置 `AUTH_COOKIE_SECURE=true` 和 `AUTH_COOKIE_SAME_SITE=None`
 
 完整步骤见 `docs/deploy-render-supabase.md`。
+
+上线复现清单：
+
+```text
+API Render Web Service
+- Branch: codex/project-quality-dashboard
+- Runtime: Docker
+- Dockerfile Path: apps/api/Dockerfile
+- Docker Build Context Directory: .
+- Health Check Path: /api/health
+- DATABASE_URL: Supabase Session Pooler URL + sslmode=require
+- WEB_ORIGIN: https://legal-rag-web.onrender.com
+- AUTH_ENABLED: true
+- AUTH_COOKIE_SECURE: true
+- AUTH_COOKIE_SAME_SITE: None
+
+Web Render Static Site
+- Branch: codex/project-quality-dashboard
+- Build Command: npm ci && npm run build:shared && npm --workspace apps/web run build
+- Publish Directory: apps/web/dist
+- VITE_API_BASE_URL: https://legal-rag-api-9bki.onrender.com
+```
+
+部署后验证：
+
+```powershell
+npm.cmd --workspace apps/api run validate:pgvector
+```
+
+线上验证：
+
+```text
+GET https://legal-rag-api-9bki.onrender.com/api/health
+打开 https://legal-rag-web.onrender.com
+登录后初始化公开数据集，执行 RAG 问答和合同审查
+```
 
 ## API
 
