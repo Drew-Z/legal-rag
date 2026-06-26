@@ -5,6 +5,7 @@ import type {
   ContractRisk,
   DocumentChunk,
   LegalDocument,
+  ProjectSpace,
   QualityReport,
   RagAnswer
 } from "@legal-rag/shared";
@@ -22,6 +23,9 @@ interface QaHistoryItem {
 }
 
 const activeView = ref<View>("knowledge");
+const projects = ref<ProjectSpace[]>([]);
+const selectedProjectId = ref("project_default");
+const projectName = ref("");
 const documents = ref<LegalDocument[]>([]);
 const chunks = ref<DocumentChunk[]>([]);
 const selectedDocumentId = ref("");
@@ -43,12 +47,17 @@ const selectedDocument = computed(() =>
   documents.value.find((document) => document.id === selectedDocumentId.value)
 );
 
+const selectedProject = computed(() =>
+  projects.value.find((project) => project.id === selectedProjectId.value)
+);
+
 const selectedChunk = computed(() =>
   chunks.value.find((chunk) => chunkKey(chunk.documentId, chunk.chunkIndex) === selectedChunkKey.value)
 );
 
 onMounted(async () => {
   await checkHealth();
+  await refreshProjects();
   await refreshDocuments();
   await loadQualityReport();
 });
@@ -63,11 +72,60 @@ async function checkHealth() {
 }
 
 async function refreshDocuments() {
-  const result = await api.listDocuments();
+  const result = await api.listDocuments(selectedProjectId.value);
   documents.value = result.documents;
+  chunks.value = [];
+  selectedChunkKey.value = "";
   if (!selectedDocumentId.value && result.documents[0]) {
     await selectDocument(result.documents[0].id);
   }
+  if (selectedDocumentId.value && !result.documents.some((document) => document.id === selectedDocumentId.value)) {
+    selectedDocumentId.value = "";
+  }
+}
+
+async function refreshProjects() {
+  const result = await api.listProjects();
+  projects.value = result.projects;
+  if (!projects.value.some((project) => project.id === selectedProjectId.value) && projects.value[0]) {
+    selectedProjectId.value = projects.value[0].id;
+  }
+}
+
+async function createProject() {
+  const name = projectName.value.trim();
+  if (!name) {
+    notice.value = "请输入项目名称";
+    return;
+  }
+
+  busy.value = true;
+  notice.value = "";
+  try {
+    const result = await api.createProject(name);
+    await refreshProjects();
+    selectedProjectId.value = result.project.id;
+    projectName.value = "";
+    selectedDocumentId.value = "";
+    ragAnswer.value = null;
+    await refreshDocuments();
+    await loadQualityReport();
+    notice.value = `已创建项目：${result.project.name}`;
+  } catch (error) {
+    notice.value = error instanceof Error ? error.message : "创建项目失败";
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function changeProject() {
+  selectedDocumentId.value = "";
+  selectedChunkKey.value = "";
+  chunks.value = [];
+  ragAnswer.value = null;
+  qaHistory.value = [];
+  reviewResult.value = null;
+  await refreshDocuments();
 }
 
 async function loadQualityReport() {
@@ -90,7 +148,7 @@ async function selectDocument(documentId: string, chunkIndex?: number) {
   }
 
   selectedDocumentId.value = documentId;
-  const result = await api.getChunks(documentId);
+  const result = await api.getChunks(selectedProjectId.value, documentId);
   chunks.value = result.chunks;
   selectedChunkKey.value =
     typeof chunkIndex === "number" ? chunkKey(documentId, chunkIndex) : selectedChunkKey.value;
@@ -100,7 +158,7 @@ async function importDocument() {
   busy.value = true;
   notice.value = "";
   try {
-    const result = await api.importText(title.value, text.value);
+    const result = await api.importText(selectedProjectId.value, title.value, text.value);
     notice.value = result.duplicate
       ? `检测到重复文档，已复用 ${result.chunkCount} 个 chunk`
       : `已导入 ${result.chunkCount} 个 chunk`;
@@ -118,7 +176,7 @@ async function seedDataset() {
   busy.value = true;
   notice.value = "";
   try {
-    const result = await api.seedDataset();
+    const result = await api.seedDataset(selectedProjectId.value);
     notice.value = `公开安全数据集已就绪：新增 ${result.imported} 份，复用 ${result.duplicates} 份`;
     await refreshDocuments();
     if (result.documents[0]) {
@@ -142,7 +200,7 @@ async function uploadDocument(event: Event) {
   uploadProgress.value = 0;
   notice.value = "";
   try {
-    const result = await api.uploadDocument(file, title.value || file.name, (percent) => {
+    const result = await api.uploadDocument(selectedProjectId.value, file, title.value || file.name, (percent) => {
       uploadProgress.value = percent;
     });
     const warningText = result.warnings.length > 0 ? `，解析提示 ${result.warnings.length} 条` : "";
@@ -165,7 +223,7 @@ async function askQuestion() {
   busy.value = true;
   notice.value = "";
   try {
-    const answer = await api.query(question.value, 5);
+    const answer = await api.query(selectedProjectId.value, question.value, 5);
     ragAnswer.value = answer;
     qaHistory.value = [
       {
@@ -191,7 +249,9 @@ async function runReview() {
   notice.value = "";
   try {
     reviewResult.value = await api.review(
-      selectedDocumentId.value ? { documentId: selectedDocumentId.value } : { text: text.value }
+      selectedDocumentId.value
+        ? { projectId: selectedProjectId.value, documentId: selectedDocumentId.value }
+        : { projectId: selectedProjectId.value, text: text.value }
     );
   } catch (error) {
     notice.value = error instanceof Error ? error.message : "审查失败";
@@ -290,6 +350,21 @@ function answerSourceLabel(source: AnswerSource) {
         </button>
       </nav>
 
+      <div class="project-switcher">
+        <label>
+          项目空间
+          <select v-model="selectedProjectId" @change="changeProject">
+            <option v-for="project in projects" :key="project.id" :value="project.id">
+              {{ project.name }}
+            </option>
+          </select>
+        </label>
+        <div class="project-create">
+          <input v-model="projectName" placeholder="新建项目" @keyup.enter="createProject" />
+          <button :disabled="busy" @click="createProject">+</button>
+        </div>
+      </div>
+
       <div class="status">
         <span>API</span>
         <strong>{{ apiStatus }}</strong>
@@ -300,7 +375,7 @@ function answerSourceLabel(source: AnswerSource) {
       <header class="topbar">
         <div>
           <h1>法律智能机器人与合同审查 RAG 应用</h1>
-          <p>导入公开安全数据、上传文档、查看引用依据，并导出结构化风险报告。</p>
+          <p>{{ selectedProject?.name ?? "默认项目" }} · 导入公开安全数据、上传文档、查看引用依据，并导出结构化风险报告。</p>
         </div>
         <div class="topbar-actions">
           <button class="secondary" :disabled="busy" @click="seedDataset">初始化公开数据集</button>

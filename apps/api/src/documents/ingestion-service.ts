@@ -30,7 +30,8 @@ export class DocumentIngestionService {
     }
 
     const contentHash = hashDocumentContent(text);
-    const existingDocument = await this.repository.getDocumentByHash(contentHash);
+    const projectId = input.projectId ?? "project_default";
+    const existingDocument = await this.repository.getDocumentByHash(contentHash, projectId);
     if (existingDocument) {
       return {
         documentId: existingDocument.id,
@@ -41,12 +42,13 @@ export class DocumentIngestionService {
     }
 
     const documentId = `doc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-    const chunks = splitIntoChunks({ documentId, title, text }).map((chunk) => ({
+    const chunks = splitIntoChunks({ documentId, projectId, title, text }).map((chunk) => ({
       ...chunk,
       metadata: enrichChunkMetadata(chunk.metadata, input)
     }));
     const document: LegalDocument = {
       id: documentId,
+      projectId,
       title,
       sourceType: input.sourceType ?? "text",
       originalName: input.originalName,

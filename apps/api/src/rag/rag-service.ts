@@ -64,11 +64,12 @@ export class RagService {
     private readonly chatProvider?: ChatProvider
   ) {}
 
-  async answerQuestion(question: string, topK = 5): Promise<RagAnswer> {
+  async answerQuestion(question: string, topK = 5, projectId?: string): Promise<RagAnswer> {
     const rewrittenQuestion = rewriteQuestion(question);
     const queryEmbedding = await this.embeddings.embedText(rewrittenQuestion);
-    const vectorCandidates = await this.vectorStore.similaritySearch(queryEmbedding, RECALL_CANDIDATES);
-    const keywordCandidates = await this.vectorStore.keywordSearch(rewrittenQuestion, RECALL_CANDIDATES);
+    const filter = projectId ? { projectId } : undefined;
+    const vectorCandidates = await this.vectorStore.similaritySearch(queryEmbedding, RECALL_CANDIDATES, filter);
+    const keywordCandidates = await this.vectorStore.keywordSearch(rewrittenQuestion, RECALL_CANDIDATES, filter);
     const hybridCandidates = mergeCandidates(vectorCandidates, keywordCandidates);
     const filteredChunks = hybridCandidates.filter(
       (chunk) => (chunk.vectorScore ?? 0) >= MIN_SIMILARITY_SCORE || (chunk.keywordScore ?? 0) > 0

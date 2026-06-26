@@ -1,5 +1,5 @@
 import type { DocumentChunk, ScoredChunk } from "@legal-rag/shared";
-import type { StoredChunk, VectorStore } from "./types.js";
+import type { SearchFilter, StoredChunk, VectorStore } from "./types.js";
 
 export class MemoryVectorStore implements VectorStore {
   private readonly chunks = new Map<string, StoredChunk>();
@@ -10,8 +10,9 @@ export class MemoryVectorStore implements VectorStore {
     }
   }
 
-  async similaritySearch(queryEmbedding: number[], topK: number): Promise<ScoredChunk[]> {
+  async similaritySearch(queryEmbedding: number[], topK: number, filter?: SearchFilter): Promise<ScoredChunk[]> {
     return [...this.chunks.values()]
+      .filter((item) => matchesFilter(item.chunk, filter))
       .map((item) => ({
         ...item.chunk,
         score: cosineSimilarity(queryEmbedding, item.embedding),
@@ -21,13 +22,14 @@ export class MemoryVectorStore implements VectorStore {
       .slice(0, topK);
   }
 
-  async keywordSearch(query: string, topK: number): Promise<ScoredChunk[]> {
+  async keywordSearch(query: string, topK: number, filter?: SearchFilter): Promise<ScoredChunk[]> {
     const queryTerms = extractTerms(query);
     if (queryTerms.length === 0) {
       return [];
     }
 
     return [...this.chunks.values()]
+      .filter((item) => matchesFilter(item.chunk, filter))
       .map((item) => {
         const haystack = `${item.chunk.title}\n${item.chunk.section}\n${item.chunk.content}`;
         const keywordScore = scoreKeywords(queryTerms, haystack);
@@ -41,6 +43,10 @@ export class MemoryVectorStore implements VectorStore {
       .sort((left, right) => (right.keywordScore ?? 0) - (left.keywordScore ?? 0))
       .slice(0, topK);
   }
+}
+
+function matchesFilter(chunk: DocumentChunk, filter?: SearchFilter): boolean {
+  return !filter?.projectId || chunk.metadata.projectId === filter.projectId;
 }
 
 function cosineSimilarity(left: number[], right: number[]): number {

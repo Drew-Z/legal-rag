@@ -123,6 +123,44 @@ button:disabled {
   background: #142b33;
 }
 
+.project-switcher {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #2f4850;
+  border-radius: 8px;
+  background: #142b33;
+}
+
+.project-switcher label {
+  color: #9fb5b6;
+  font-size: 12px;
+}
+
+.project-switcher select,
+.project-switcher input {
+  min-height: 36px;
+  border-color: #35515a;
+  background: #102027;
+  color: #e9f0ef;
+}
+
+.project-create {
+  display: grid;
+  grid-template-columns: 1fr 36px;
+  gap: 8px;
+}
+
+.project-create button {
+  display: grid;
+  min-height: 36px;
+  place-items: center;
+  border-radius: 8px;
+  background: #7ed5c4;
+  color: #102027;
+  font-weight: 900;
+}
+
 .workspace {
   padding: 26px;
 }

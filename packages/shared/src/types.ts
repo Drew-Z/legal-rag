@@ -1,7 +1,16 @@
 export type RiskLevel = "low" | "medium" | "high";
 
+export interface ProjectSpace {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  isDefault?: boolean;
+}
+
 export interface LegalDocument {
   id: string;
+  projectId: string;
   title: string;
   sourceType: "text" | "txt" | "sample" | "dataset" | "upload";
   originalName?: string;
@@ -14,6 +23,7 @@ export interface LegalDocument {
 }
 
 export interface ChunkMetadata {
+  projectId: string;
   source: string;
   sourceLabel?: string;
   sourceUrl?: string;

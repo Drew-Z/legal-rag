@@ -1,6 +1,6 @@
 import type { DocumentChunk, ScoredChunk } from "@legal-rag/shared";
 import type { Queryable } from "../db/pool.js";
-import type { StoredChunk, VectorStore } from "./types.js";
+import type { SearchFilter, StoredChunk, VectorStore } from "./types.js";
 
 export class PgVectorStore implements VectorStore {
   constructor(private readonly db: Queryable) {}
@@ -40,15 +40,16 @@ export class PgVectorStore implements VectorStore {
     }
   }
 
-  async similaritySearch(queryEmbedding: number[], topK: number): Promise<ScoredChunk[]> {
+  async similaritySearch(queryEmbedding: number[], topK: number, filter?: SearchFilter): Promise<ScoredChunk[]> {
     const result = await this.db.query(
       `
       SELECT *, 1 - (embedding <=> $1::vector) AS vector_score
       FROM chunks
+      WHERE ($3::text IS NULL OR metadata->>'projectId' = $3)
       ORDER BY embedding <=> $1::vector
       LIMIT $2
       `,
-      [toPgVectorLiteral(queryEmbedding), topK]
+      [toPgVectorLiteral(queryEmbedding), topK, filter?.projectId ?? null]
     );
 
     return result.rows.map((row) => ({
@@ -58,20 +59,23 @@ export class PgVectorStore implements VectorStore {
     }));
   }
 
-  async keywordSearch(query: string, topK: number): Promise<ScoredChunk[]> {
+  async keywordSearch(query: string, topK: number, filter?: SearchFilter): Promise<ScoredChunk[]> {
     const result = await this.db.query(
       `
       SELECT *,
         ts_rank_cd(to_tsvector('simple', title || ' ' || section || ' ' || content), plainto_tsquery('simple', $1)) AS keyword_score
       FROM chunks
-      WHERE to_tsvector('simple', title || ' ' || section || ' ' || content) @@ plainto_tsquery('simple', $1)
-         OR title ILIKE $3
-         OR section ILIKE $3
-         OR content ILIKE $3
+      WHERE ($4::text IS NULL OR metadata->>'projectId' = $4)
+        AND (
+          to_tsvector('simple', title || ' ' || section || ' ' || content) @@ plainto_tsquery('simple', $1)
+          OR title ILIKE $3
+          OR section ILIKE $3
+          OR content ILIKE $3
+        )
       ORDER BY keyword_score DESC, chunk_index ASC
       LIMIT $2
       `,
-      [query, topK, `%${escapeLike(query.slice(0, 32))}%`]
+      [query, topK, `%${escapeLike(query.slice(0, 32))}%`, filter?.projectId ?? null]
     );
 
     return result.rows.map((row) => {

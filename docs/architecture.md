@@ -5,10 +5,12 @@ Legal RAG is a small monorepo that demonstrates a complete legal-document RAG lo
 ```mermaid
 flowchart LR
   Web["Vue Web App"] --> API["Express API"]
+  API --> Projects["projects: workspace isolation"]
   API --> Upload["upload: TXT/PDF/DOCX parsers"]
   API --> Dataset["public-safe dataset seed"]
   Upload --> Documents["documents: clean and store"]
   Dataset --> Documents
+  Projects --> Documents
   Documents --> Hash["hash: duplicate detection"]
   Hash --> Chunks["chunks: section-aware splitter"]
   Chunks --> Embeddings["embeddings: provider adapter"]
@@ -31,17 +33,19 @@ flowchart LR
 - `datasets/public-safe/legal-public-dataset.jsonl`: public-safe legal snippets and synthetic contract samples.
 - `eval/rag-eval-set.json`: citation and refusal evaluation cases.
 - `VECTOR_STORE=pgvector`: persists documents, chunks, metadata, and embeddings in PostgreSQL + pgvector.
+- `projects`: workspace boundary for documents, duplicate detection, retrieval, and contract review. `project_default` keeps local demo behavior backward-compatible.
 
 ## RAG Flow
 
-1. The user imports text through `POST /api/documents/import-text`, uploads TXT/PDF/DOCX through `POST /api/documents/upload`, or seeds the public-safe dataset through `POST /api/datasets/seed`.
-2. The API computes a SHA-256 content hash and returns the existing document when the same text is imported again.
-3. The API cleans text, enriches source metadata, splits it into section-aware chunks, and estimates token count.
-4. `MockEmbeddingProvider` creates deterministic local embeddings when no API key is available; `OpenAICompatibleEmbeddingProvider` can call a real embedding model such as `Qwen3-Embedding-0.6B`.
-5. `MemoryVectorStore` stores chunks and vectors in process memory; `PgVectorStore` persists chunk embeddings in PostgreSQL + pgvector.
-6. `POST /api/rag/query` rewrites short contextual questions, embeds the rewritten question, recalls top 20 candidates from both vector and keyword search, filters weak candidates, reranks down to top 5, generates a grounded answer, and returns citations plus diagnostics.
-7. `GET /api/quality/report` aggregates runtime configuration, corpus size, the deterministic RAG eval suite, and readiness checks for the web quality panel.
-8. When the query is outside the current legal/contract corpus or retrieval evidence is too weak, the RAG service refuses with a "current materials cannot confirm" answer and no citations.
+1. The user selects or creates a project space through `GET /api/projects` and `POST /api/projects`.
+2. Within that project, the user imports text through `POST /api/documents/import-text`, uploads TXT/PDF/DOCX through `POST /api/documents/upload`, or seeds the public-safe dataset through `POST /api/datasets/seed`.
+3. The API computes a SHA-256 content hash scoped to the project and returns the existing document when the same text is imported again.
+4. The API cleans text, enriches source metadata with `projectId`, splits it into section-aware chunks, and estimates token count.
+5. `MockEmbeddingProvider` creates deterministic local embeddings when no API key is available; `OpenAICompatibleEmbeddingProvider` can call a real embedding model such as `Qwen3-Embedding-0.6B`.
+6. `MemoryVectorStore` stores chunks and vectors in process memory; `PgVectorStore` persists chunk embeddings in PostgreSQL + pgvector.
+7. `POST /api/rag/query` rewrites short contextual questions, embeds the rewritten question, recalls top 20 candidates from both vector and keyword search inside the selected project, filters weak candidates, reranks down to top 5, generates a grounded answer, and returns citations plus diagnostics.
+8. `GET /api/quality/report` aggregates runtime configuration, corpus size, the deterministic RAG eval suite, and readiness checks for the web quality panel.
+9. When the query is outside the current legal/contract corpus or retrieval evidence is too weak, the RAG service refuses with a "current materials cannot confirm" answer and no citations.
 
 ## Contract Review Flow
 

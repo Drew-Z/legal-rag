@@ -52,6 +52,7 @@ function scoredChunk(overrides: Pick<DocumentChunk, "section" | "content">): Sco
     tokenEstimate: 20,
     metadata: {
       source: "民法典合同编公开知识片段",
+      projectId: "project_default",
       page: 1,
       section: overrides.section,
       chunkIndex: 0,

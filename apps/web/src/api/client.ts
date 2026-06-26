@@ -2,6 +2,7 @@ import type {
   ContractReviewResult,
   DocumentChunk,
   LegalDocument,
+  ProjectSpace,
   QualityReport,
   RagAnswer
 } from "@legal-rag/shared";
@@ -24,6 +25,10 @@ export interface SeedDatasetResponse {
   documents: LegalDocument[];
 }
 
+export interface CreateProjectResponse {
+  project: ProjectSpace;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     headers: {
@@ -44,27 +49,35 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<{ ok: boolean; modelProvider: string; vectorStore: string }>("/api/health"),
   qualityReport: () => request<QualityReport>("/api/quality/report"),
-  importText: (title: string, text: string) =>
+  listProjects: () => request<{ projects: ProjectSpace[] }>("/api/projects"),
+  createProject: (name: string, description = "") =>
+    request<CreateProjectResponse>("/api/projects", {
+      method: "POST",
+      body: JSON.stringify({ name, description })
+    }),
+  importText: (projectId: string, title: string, text: string) =>
     request<ImportTextResponse>("/api/documents/import-text", {
       method: "POST",
-      body: JSON.stringify({ title, text })
+      body: JSON.stringify({ projectId, title, text })
     }),
-  uploadDocument: (file: File, title: string, onProgress?: (percent: number) => void) =>
-    uploadRequest<UploadDocumentResponse>("/api/documents/upload", file, title, onProgress),
-  seedDataset: () =>
+  uploadDocument: (projectId: string, file: File, title: string, onProgress?: (percent: number) => void) =>
+    uploadRequest<UploadDocumentResponse>("/api/documents/upload", projectId, file, title, onProgress),
+  seedDataset: (projectId: string) =>
     request<SeedDatasetResponse>("/api/datasets/seed", {
       method: "POST",
-      body: JSON.stringify({})
+      body: JSON.stringify({ projectId })
     }),
-  listDocuments: () => request<{ documents: LegalDocument[] }>("/api/documents"),
-  getChunks: (documentId: string) =>
-    request<{ document: LegalDocument; chunks: DocumentChunk[] }>(`/api/documents/${documentId}/chunks`),
-  query: (question: string, topK = 5) =>
+  listDocuments: (projectId: string) => request<{ documents: LegalDocument[] }>(`/api/documents?projectId=${encodeURIComponent(projectId)}`),
+  getChunks: (projectId: string, documentId: string) =>
+    request<{ document: LegalDocument; chunks: DocumentChunk[] }>(
+      `/api/documents/${documentId}/chunks?projectId=${encodeURIComponent(projectId)}`
+    ),
+  query: (projectId: string, question: string, topK = 5) =>
     request<RagAnswer>("/api/rag/query", {
       method: "POST",
-      body: JSON.stringify({ question, topK })
+      body: JSON.stringify({ projectId, question, topK })
     }),
-  review: (payload: { documentId?: string; text?: string }) =>
+  review: (payload: { projectId: string; documentId?: string; text?: string }) =>
     request<ContractReviewResult>("/api/contracts/review", {
       method: "POST",
       body: JSON.stringify(payload)
@@ -73,12 +86,14 @@ export const api = {
 
 function uploadRequest<T>(
   path: string,
+  projectId: string,
   file: File,
   title: string,
   onProgress?: (percent: number) => void
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     const form = new FormData();
+    form.append("projectId", projectId);
     form.append("title", title);
     form.append("file", file);
 

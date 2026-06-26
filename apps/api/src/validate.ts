@@ -40,6 +40,32 @@ try {
   assert(quality.eval.failed === 0, "expected quality eval to pass");
   assert(quality.checks.length > 0, "expected quality checks");
 
+  const createdProject = await postJson<{ project: { id: string; name: string } }>("/api/projects", {
+    name: "validation workspace"
+  });
+  assert(createdProject.project.id.length > 0, "expected created project id");
+
+  const projectImport = await postJson<{ documentId: string; chunkCount: number }>("/api/documents/import-text", {
+    projectId: createdProject.project.id,
+    title: "isolated workspace contract",
+    text: "第一条 付款\n本项目专属合同约定验收后七日内付款。"
+  });
+  assert(projectImport.chunkCount > 0, "expected project import chunks");
+
+  const projectDocuments = await getJson<{ documents: Array<{ id: string }> }>(
+    `/api/documents?projectId=${createdProject.project.id}`
+  );
+  assert(
+    projectDocuments.documents.some((document) => document.id === projectImport.documentId),
+    "expected project document to appear in its workspace"
+  );
+
+  const defaultDocumentsBeforeImport = await getJson<{ documents: Array<{ id: string }> }>("/api/documents");
+  assert(
+    !defaultDocumentsBeforeImport.documents.some((document) => document.id === projectImport.documentId),
+    "expected project document to be hidden from default workspace"
+  );
+
   const imported = await postJson<{ documentId: string; chunkCount: number }>("/api/documents/import-text", {
     title: "sample service contract",
     text: sample

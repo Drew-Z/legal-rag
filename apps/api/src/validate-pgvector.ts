@@ -88,39 +88,55 @@ async function delay(milliseconds: number): Promise<void> {
 }
 
 async function startServer() {
-  const app = await createApp(config);
-  const server = createServer(app);
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    const app = await createApp(config);
+    const server = createServer(app);
 
-  await new Promise<void>((resolveReady) => {
-    server.listen(0, "127.0.0.1", resolveReady);
-  });
+    await new Promise<void>((resolveReady) => {
+      server.listen(0, "127.0.0.1", resolveReady);
+    });
 
-  const address = server.address();
-  if (!address || typeof address === "string") {
-    throw new Error("Failed to start pgvector validation server");
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      await closeServer(server);
+      throw new Error("Failed to start pgvector validation server");
+    }
+
+    if (isFetchBlockedPort(address.port)) {
+      await closeServer(server);
+      continue;
+    }
+
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+
+    return {
+      getJson: async <T>(path: string): Promise<T> => {
+        const response = await fetch(`${baseUrl}${path}`);
+        return response.json() as Promise<T>;
+      },
+      postJson: async <T>(path: string, body: unknown): Promise<T> => {
+        const response = await fetch(`${baseUrl}${path}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+        return response.json() as Promise<T>;
+      },
+      close: async () => closeServer(server)
+    };
   }
 
-  const baseUrl = `http://127.0.0.1:${address.port}`;
+  throw new Error("Failed to start pgvector validation server on a fetch-safe port");
+}
 
-  return {
-    getJson: async <T>(path: string): Promise<T> => {
-      const response = await fetch(`${baseUrl}${path}`);
-      return response.json() as Promise<T>;
-    },
-    postJson: async <T>(path: string, body: unknown): Promise<T> => {
-      const response = await fetch(`${baseUrl}${path}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-      return response.json() as Promise<T>;
-    },
-    close: async () => {
-      await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
-    }
-  };
+async function closeServer(server: ReturnType<typeof createServer>): Promise<void> {
+  await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
+}
+
+function isFetchBlockedPort(port: number): boolean {
+  return port === 6000 || (port >= 6665 && port <= 6669) || port === 6697 || port === 10080;
 }
 
 function assert(condition: unknown, message: string): asserts condition {

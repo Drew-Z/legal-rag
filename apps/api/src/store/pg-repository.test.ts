@@ -7,6 +7,7 @@ test("PgRepository stores documents and reads documents/chunks", async () => {
   const queries: Array<{ sql: string; params: unknown[] }> = [];
   const document: LegalDocument = {
     id: "doc_1",
+    projectId: "project_default",
     title: "测试合同",
     sourceType: "dataset",
     createdAt: "2026-06-26T00:00:00.000Z",
@@ -27,6 +28,7 @@ test("PgRepository stores documents and reads documents/chunks", async () => {
     tokenEstimate: 8,
     metadata: {
       source: "测试合同",
+      projectId: "project_default",
       page: 1,
       section: "第一条",
       chunkIndex: 0,
@@ -55,7 +57,7 @@ test("PgRepository stores documents and reads documents/chunks", async () => {
   const repository = new PgRepository(db);
   await repository.addDocument(document, [chunk]);
 
-  assert.equal((await repository.getDocumentByHash("hash_1"))?.id, "doc_1");
+  assert.equal((await repository.getDocumentByHash("hash_1", "project_default"))?.id, "doc_1");
   assert.equal((await repository.getDocument("doc_1"))?.title, "测试合同");
   assert.equal((await repository.listDocuments()).length, 1);
   assert.equal((await repository.getChunks("doc_1"))[0]?.id, "chunk_1");
@@ -65,6 +67,7 @@ test("PgRepository stores documents and reads documents/chunks", async () => {
 function documentRow(document: LegalDocument): Record<string, unknown> {
   return {
     id: document.id,
+    project_id: document.projectId,
     title: document.title,
     source_type: document.sourceType,
     original_name: document.originalName,

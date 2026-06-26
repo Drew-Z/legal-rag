@@ -1,6 +1,7 @@
 import type { ChunkMetadata, LegalDocument } from "@legal-rag/shared";
 
 export interface ImportDocumentInput {
+  projectId?: string;
   title: string;
   text: string;
   sourceType?: LegalDocument["sourceType"];
@@ -18,6 +19,7 @@ export function enrichChunkMetadata(
 
   return {
     ...metadata,
+    projectId: input.projectId ?? "project_default",
     sourceLabel: input.sourceLabel,
     sourceUrl: input.sourceUrl,
     docType: input.docType,

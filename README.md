@@ -5,6 +5,7 @@
 ## 功能
 
 - 导入合同或法律文本，支持粘贴文本、TXT、PDF、DOCX
+- 支持项目空间，同一套应用中隔离不同客户、案件或合同包的知识库
 - 一键初始化公开安全法律数据集，保留来源标签和来源 URL
 - SHA-256 文档判重，避免重复入库
 - 文本清洗和条款级 chunk 切分
@@ -104,6 +105,24 @@ GET /api/quality/report
 
 返回运行时配置、知识库规模、RAG 评测摘要和 readiness checks，可用于前端质量面板和项目演示。
 
+### 项目空间
+
+```http
+GET /api/projects
+```
+
+```http
+POST /api/projects
+Content-Type: application/json
+
+{
+  "name": "客户 A 合同包",
+  "description": "可选说明"
+}
+```
+
+项目空间用于隔离文档、向量召回、问答和合同审查。没有传 `projectId` 时默认使用 `project_default`。
+
 ### 导入文本
 
 ```http
@@ -111,6 +130,7 @@ POST /api/documents/import-text
 Content-Type: application/json
 
 {
+  "projectId": "project_default",
   "title": "示例合同",
   "text": "合同正文..."
 }
@@ -123,6 +143,7 @@ POST /api/documents/upload
 Content-Type: multipart/form-data
 
 file=<TXT/PDF/DOCX>
+projectId=project_default
 title=上传文档标题
 ```
 
@@ -130,18 +151,22 @@ title=上传文档标题
 
 ```http
 POST /api/datasets/seed
+
+{
+  "projectId": "project_default"
+}
 ```
 
 ### 文档列表
 
 ```http
-GET /api/documents
+GET /api/documents?projectId=project_default
 ```
 
 ### 文档 chunks
 
 ```http
-GET /api/documents/:id/chunks
+GET /api/documents/:id/chunks?projectId=project_default
 ```
 
 ### RAG 问答
@@ -151,6 +176,7 @@ POST /api/rag/query
 Content-Type: application/json
 
 {
+  "projectId": "project_default",
   "question": "违约责任是否合理？",
   "topK": 5
 }
@@ -163,6 +189,7 @@ POST /api/contracts/review
 Content-Type: application/json
 
 {
+  "projectId": "project_default",
   "documentId": "doc_xxx"
 }
 ```
@@ -171,25 +198,27 @@ Content-Type: application/json
 
 ```json
 {
+  "projectId": "project_default",
   "text": "合同正文..."
 }
 ```
 
 ## RAG 流程
 
-1. 导入文本。
-2. 计算 SHA-256 content hash，重复文档直接返回已有记录。
-3. 清洗换行和空白。
-4. 按条款和段落切分 chunk，保留 source、page、section、chunkIndex。
-5. 生成 embedding。
-6. 写入 memory vector store。
-7. 提问时先进行轻量问题重写，处理“它/这个/上述”等追问。
-8. 同时执行向量召回和关键词召回，合并 top 20 候选。
-9. 按相似度阈值和关键词命中过滤低相关片段。
-10. 用轻量 rerank 把命中问题关键词、法律术语和条款号的 chunk 排到前面。
-11. 对领域外或资料不足的问题返回拒答。
-12. 基于检索结果生成回答。
-13. 返回 citations 和 diagnostics，支持引用溯源、候选统计和回答来源调试。
+1. 选择或创建项目空间。
+2. 导入文本。
+3. 在当前项目内计算 SHA-256 content hash，重复文档直接返回已有记录。
+4. 清洗换行和空白。
+5. 按条款和段落切分 chunk，保留 projectId、source、page、section、chunkIndex。
+6. 生成 embedding。
+7. 写入 memory vector store 或 PostgreSQL + pgvector。
+8. 提问时先进行轻量问题重写，处理“它/这个/上述”等追问。
+9. 在当前项目内同时执行向量召回和关键词召回，合并 top 20 候选。
+10. 按相似度阈值和关键词命中过滤低相关片段。
+11. 用轻量 rerank 把命中问题关键词、法律术语和条款号的 chunk 排到前面。
+12. 对领域外或资料不足的问题返回拒答。
+13. 基于检索结果生成回答。
+14. 返回 citations 和 diagnostics，支持引用溯源、候选统计和回答来源调试。
 
 ## 借鉴的 RAG 工程实践
 

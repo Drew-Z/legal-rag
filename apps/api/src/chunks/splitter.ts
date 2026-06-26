@@ -3,6 +3,7 @@ import { detectSection, estimateTokens } from "../documents/text.js";
 
 interface SplitInput {
   documentId: string;
+  projectId?: string;
   title: string;
   text: string;
 }
@@ -74,6 +75,7 @@ function pushChunk(
     tokenEstimate: estimateTokens(content),
     metadata: {
       source: input.title,
+      projectId: input.projectId ?? "project_default",
       page,
       section,
       chunkIndex,

@@ -24,7 +24,8 @@ const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
 const DATASET_PATH = resolve(CURRENT_DIR, "..", "..", "..", "..", "datasets", "public-safe", "legal-public-dataset.jsonl");
 
 export async function seedPublicSafeDataset(
-  ingestion: DocumentIngestionService
+  ingestion: DocumentIngestionService,
+  projectId = "project_default"
 ): Promise<ImportDocumentResult[]> {
   const rows = await readDatasetRows();
   const results: ImportDocumentResult[] = [];
@@ -32,6 +33,7 @@ export async function seedPublicSafeDataset(
   for (const row of rows) {
     results.push(
       await ingestion.importDocument({
+        projectId,
         title: row.title,
         text: toDatasetText(row),
         sourceType: "dataset",

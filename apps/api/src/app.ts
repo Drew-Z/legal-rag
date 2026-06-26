@@ -1,6 +1,7 @@
 import cors from "cors";
-import express from "express";
+import express, { type Request, type Response } from "express";
 import multer from "multer";
+import type { ProjectSpace } from "@legal-rag/shared";
 import { splitIntoChunks } from "./chunks/splitter.js";
 import type { AppConfig } from "./config/env.js";
 import { createPool } from "./db/pool.js";
@@ -20,7 +21,7 @@ import { buildQualityReport } from "./quality/quality-service.js";
 import { RagService } from "./rag/rag-service.js";
 import { reviewContract } from "./review/review-service.js";
 import { PgRepository } from "./store/pg-repository.js";
-import { type DocumentRepository, Repository } from "./store/repository.js";
+import { DEFAULT_PROJECT, DEFAULT_PROJECT_ID, type DocumentRepository, Repository } from "./store/repository.js";
 import { MemoryVectorStore } from "./vector-store/memory.js";
 import { PgVectorStore } from "./vector-store/pgvector.js";
 import type { VectorStore } from "./vector-store/types.js";
@@ -53,7 +54,34 @@ export async function createApp(config: AppConfig) {
     response.json(await buildQualityReport(config, repository));
   });
 
+  app.get("/api/projects", async (_request, response) => {
+    response.json({ projects: await repository.listProjects() });
+  });
+
+  app.post("/api/projects", async (request, response) => {
+    const name = String(request.body?.name ?? "").trim();
+    const description = String(request.body?.description ?? "").trim();
+
+    if (!name) {
+      response.status(400).json({ error: "project name is required" });
+      return;
+    }
+
+    const project: ProjectSpace = {
+      id: `project_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      description: description || undefined,
+      createdAt: new Date().toISOString()
+    };
+    await repository.addProject(project);
+    response.status(201).json({ project });
+  });
+
   app.post("/api/documents/import-text", async (request, response) => {
+    const projectId = await resolveProjectId(request, response, repository);
+    if (!projectId) {
+      return;
+    }
     const title = String(request.body?.title ?? "").trim();
     const text = cleanText(String(request.body?.text ?? ""));
 
@@ -63,6 +91,7 @@ export async function createApp(config: AppConfig) {
     }
 
     const result = await ingestion.importDocument({
+      projectId,
       title,
       text,
       sourceType: "text"
@@ -72,6 +101,10 @@ export async function createApp(config: AppConfig) {
   });
 
   app.post("/api/documents/upload", upload.single("file"), async (request, response) => {
+    const projectId = await resolveProjectId(request, response, repository);
+    if (!projectId) {
+      return;
+    }
     if (!request.file) {
       response.status(400).json({ error: "file is required" });
       return;
@@ -85,6 +118,7 @@ export async function createApp(config: AppConfig) {
       );
       const title = String(request.body?.title ?? "").trim() || request.file.originalname;
       const result = await ingestion.importDocument({
+        projectId,
         title,
         text: parsed.text,
         sourceType: "upload",
@@ -104,7 +138,11 @@ export async function createApp(config: AppConfig) {
   });
 
   app.post("/api/datasets/seed", async (_request, response) => {
-    const results = await seedPublicSafeDataset(ingestion);
+    const projectId = await resolveProjectId(_request, response, repository);
+    if (!projectId) {
+      return;
+    }
+    const results = await seedPublicSafeDataset(ingestion, projectId);
     response.json({
       imported: results.filter((result) => !result.duplicate).length,
       duplicates: results.filter((result) => result.duplicate).length,
@@ -113,12 +151,20 @@ export async function createApp(config: AppConfig) {
   });
 
   app.get("/api/documents", async (_request, response) => {
-    response.json({ documents: await repository.listDocuments() });
+    const projectId = await resolveProjectId(_request, response, repository);
+    if (!projectId) {
+      return;
+    }
+    response.json({ documents: await repository.listDocuments(projectId) });
   });
 
   app.get("/api/documents/:id/chunks", async (request, response) => {
+    const projectId = await resolveProjectId(request, response, repository);
+    if (!projectId) {
+      return;
+    }
     const document = await repository.getDocument(request.params.id);
-    if (!document) {
+    if (!document || document.projectId !== projectId) {
       response.status(404).json({ error: "document not found" });
       return;
     }
@@ -130,6 +176,10 @@ export async function createApp(config: AppConfig) {
   });
 
   app.post("/api/rag/query", async (request, response) => {
+    const projectId = await resolveProjectId(request, response, repository);
+    if (!projectId) {
+      return;
+    }
     const question = String(request.body?.question ?? "").trim();
     const topK = Math.max(1, Math.min(Number(request.body?.topK ?? 5), 10));
 
@@ -138,19 +188,34 @@ export async function createApp(config: AppConfig) {
       return;
     }
 
-    response.json(await rag.answerQuestion(question, topK));
+    response.json(await rag.answerQuestion(question, topK, projectId));
   });
 
   app.post("/api/contracts/review", async (request, response) => {
+    const projectId = await resolveProjectId(request, response, repository);
+    if (!projectId) {
+      return;
+    }
     const documentId = request.body?.documentId ? String(request.body.documentId) : undefined;
     const pastedText = request.body?.text ? cleanText(String(request.body.text)) : "";
+    const document = documentId ? await repository.getDocument(documentId) : undefined;
+    if (documentId && (!document || document.projectId !== projectId)) {
+      response.status(404).json({ error: "document not found" });
+      return;
+    }
     const chunks = documentId
       ? await repository.getChunks(documentId)
       : splitIntoChunks({
           documentId: "pasted_contract",
           title: "粘贴合同",
           text: pastedText
-        });
+        }).map((chunk) => ({
+          ...chunk,
+          metadata: {
+            ...chunk.metadata,
+            projectId
+          }
+        }));
 
     if (chunks.length === 0) {
       response.status(400).json({ error: "documentId or text is required" });
@@ -161,6 +226,27 @@ export async function createApp(config: AppConfig) {
   });
 
   return app;
+}
+
+async function resolveProjectId(
+  request: Request,
+  response: Response,
+  repository: DocumentRepository
+): Promise<string | undefined> {
+  const rawProjectId =
+    request.body?.projectId ??
+    request.query.projectId ??
+    request.header("x-project-id") ??
+    DEFAULT_PROJECT_ID;
+  const projectId = String(rawProjectId).trim() || DEFAULT_PROJECT_ID;
+  const projects = await repository.listProjects();
+
+  if (!projects.some((project) => project.id === projectId)) {
+    response.status(404).json({ error: "project not found" });
+    return undefined;
+  }
+
+  return projectId;
 }
 
 async function createRuntime(config: AppConfig): Promise<{
@@ -194,8 +280,10 @@ async function createRuntime(config: AppConfig): Promise<{
     }
     const pool = createPool(config.databaseUrl);
     await pool.query(createPgVectorSchemaSql(config.embedding.dimensions));
+    const repository = new PgRepository(pool);
+    await repository.addProject(DEFAULT_PROJECT);
     return {
-      repository: new PgRepository(pool),
+      repository,
       embeddings,
       vectorStore: new PgVectorStore(pool),
       chatProvider
