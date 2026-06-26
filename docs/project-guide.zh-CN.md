@@ -43,6 +43,7 @@ Legal RAG 是一个法律文档问答与合同风险审查应用。项目目标�
 - 质量趋势已经设计为 `Evaluation Run`，本地 memory 模式记录进程内趋势，pgvector 模式写入 PostgreSQL `evaluation_runs` 表。
 - 项目级 `Audit Log` 已经记录项目创建、文档导入/上传、公开数据集初始化、RAG 问答和合同审查，为后续多用户授权、项目治理和操作追溯铺底。
 - 文本导入、文件上传和公开数据集初始化已经通过 `Ingestion Job` 接口进入异步任务流程；当前使用进程内任务 adapter，后续可替换为 BullMQ。
+- 合同审查已经从纯规则扩展为“规则召回 + 可选 LLM 解释 + schema 校验”：规则负责稳定召回和 citation，模型只补强说明，失败时回退规则结果。
 
 ## 线上演示路径
 
@@ -68,7 +69,7 @@ flowchart TB
   API --> Auth["HTTP-only cookie 登录门禁"]
   API --> Ingest["文档入库模块\nparse / clean / hash / chunk"]
   API --> Rag["RAG 模块\nrewrite / hybrid recall / rerank"]
-  API --> Review["合同审查模块\nrisk rules / citations"]
+  API --> Review["合同审查模块\nrules / LLM explanation / schema"]
   API --> Quality["质量模块\neval / readiness / trends"]
   Ingest --> Embedding["Embedding Provider"]
   Rag --> Embedding
@@ -138,11 +139,11 @@ Supabase 已经承担 PostgreSQL + pgvector 职责，不需要再额外接入 Ai
 
 ### 第四阶段：LLM 辅助合同审查
 
-当前合同审查使用确定性规则，稳定且可评测。下一步可以保留规则作为召回层，再加入模型解释：
+当前已经保留规则作为召回层，并加入模型解释与 schema 校验。下一步可以进一步增强：
 
-- 规则先召回可疑条款。
-- LLM 对候选条款生成风险解释和修改建议。
-- 用 schema 校验输出字段。
+- 引入更细粒度的风险 schema，例如风险原因、谈判优先级、替代条款。
+- 记录模型版本、耗时和 token 成本。
+- 对模型辅助审查增加单独评测集。
 - 保留 citation 和 `requiresHumanReview`，避免把模型输出当成最终法律意见。
 
 ### 第五阶段：评测发布门禁

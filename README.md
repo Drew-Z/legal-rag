@@ -42,6 +42,7 @@
 - 查询增强：追问重写、hybrid recall、相似度阈值过滤、轻量 rerank
 - RAG 问答，返回 answer + citations
 - 合同风险审查，返回结构化 JSON 和 Markdown
+- 合同审查采用规则召回 + 可选 LLM 解释 + schema 校验，模型失败时自动回退规则结果
 - 合同审查评测集，衡量标注风险召回率
 - Vue 前端三页工作台：知识库、智能问答、合同审查、上传进度、问答历史、来源高亮、报告导出
 - 问答诊断会展示回答来源：真实模型、本地回退或资料不足拒答
@@ -71,7 +72,7 @@ flowchart TB
   API --> Auth["HTTP-only cookie auth"]
   API --> Ingest["Ingestion\nparse / clean / hash / chunk"]
   API --> RAG["RAG pipeline\nrewrite / hybrid recall / rerank"]
-  API --> Review["Contract review\nrule-guided risk report"]
+  API --> Review["Contract review\nrules + optional LLM explanation"]
   Ingest --> Embedding["Embedding provider\nQwen3-Embedding-0.6B"]
   Embedding --> Store["Supabase PostgreSQL + pgvector\nprojects / documents / chunks / vectors"]
   RAG --> Store
@@ -483,7 +484,7 @@ Content-Type: application/json
 
 ## 合同审查流程
 
-MVP 使用可解释规则识别高频合同风险：
+合同审查使用可解释规则作为风险召回层：
 
 - 付款节点不合理
 - 交付标准模糊
@@ -491,7 +492,9 @@ MVP 使用可解释规则识别高频合同风险：
 - 知识产权条款过于绝对
 - 争议解决地点偏向一方
 
-返回字段包括 clause、riskLevel、issue、suggestion、citation 和 requiresHumanReview。
+返回字段包括 clause、riskLevel、issue、suggestion、citation、requiresHumanReview 和 analysisSource。
+
+当配置了真实 chat model 时，系统会把已召回风险和合同片段发给模型，让模型只改写 `issue` 和 `suggestion`。模型必须返回符合 schema 的 JSON，且不能新增未召回风险。校验通过时结果标记为 `model-assisted`；模型不可用或输出不合法时自动回退到 `rules`，保持审查结果可解释、可评测。
 
 ## 示例数据
 

@@ -1,4 +1,4 @@
-import type { ScoredChunk } from "@legal-rag/shared";
+import type { ContractRisk, DocumentChunk, ScoredChunk } from "@legal-rag/shared";
 import type { EmbeddingProvider } from "../embeddings/provider.js";
 
 interface OpenAICompatibleOptions {
@@ -17,8 +17,23 @@ interface GenerateAnswerInput {
   chunks: Array<Pick<ScoredChunk, "section" | "content">>;
 }
 
+export interface ContractRiskModelExplanation {
+  clause: string;
+  issue: string;
+  suggestion: string;
+  requiresHumanReview?: boolean;
+}
+
+interface GenerateContractRiskExplanationsInput {
+  chunks: Array<Pick<DocumentChunk, "section" | "content" | "chunkIndex">>;
+  risks: Array<Pick<ContractRisk, "clause" | "riskLevel" | "issue" | "suggestion" | "requiresHumanReview">>;
+}
+
 export interface ChatProvider {
   generateAnswer(input: GenerateAnswerInput): Promise<string>;
+  generateContractRiskExplanations?(
+    input: GenerateContractRiskExplanationsInput
+  ): Promise<ContractRiskModelExplanation[]>;
 }
 
 export class OpenAICompatibleEmbeddingProvider implements EmbeddingProvider {
@@ -100,12 +115,92 @@ export class OpenAICompatibleChatProvider implements ChatProvider {
     return body.choices[0]?.message?.content?.trim() ?? "根据当前资料无法确认。";
   }
 
+  async generateContractRiskExplanations(
+    input: GenerateContractRiskExplanationsInput
+  ): Promise<ContractRiskModelExplanation[]> {
+    const response = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({
+        model: this.options.model,
+        temperature: 0.1,
+        messages: [
+          {
+            role: "system",
+            content:
+              "你是合同审查助手。只能基于已召回的规则风险和合同片段补充解释。必须输出严格 JSON，不要输出 Markdown，不要新增未召回的风险。"
+          },
+          {
+            role: "user",
+            content: buildContractReviewPrompt(input)
+          }
+        ]
+      })
+    });
+    const body = await parseJsonResponse<ChatCompletionResponse>(response, "contract review");
+    const content = body.choices[0]?.message?.content ?? "{}";
+    return parseContractReviewJson(content);
+  }
+
   private headers(): Headers {
     return new Headers({
       authorization: `Bearer ${this.options.apiKey}`,
       "content-type": "application/json"
     });
   }
+}
+
+function buildContractReviewPrompt(input: GenerateContractRiskExplanationsInput): string {
+  const risks = input.risks
+    .map(
+      (risk, index) =>
+        `${index + 1}. ${risk.clause}｜${risk.riskLevel}\n规则问题：${risk.issue}\n规则建议：${risk.suggestion}`
+    )
+    .join("\n\n");
+  const evidence = input.chunks
+    .slice(0, 8)
+    .map((chunk) => `chunk ${chunk.chunkIndex + 1}｜${chunk.section}\n${chunk.content}`)
+    .join("\n\n");
+
+  return [
+    "请仅针对下列已召回风险补充更自然、专业但简洁的 issue 和 suggestion。",
+    "输出 JSON schema：",
+    `{"risks":[{"clause":"付款条件","issue":"...","suggestion":"...","requiresHumanReview":true}]}`,
+    "要求：clause 必须与输入风险 clause 一致；不要新增风险；不要输出资料外事实。",
+    "已召回风险：",
+    risks,
+    "合同片段：",
+    evidence
+  ].join("\n\n");
+}
+
+function parseContractReviewJson(content: string): ContractRiskModelExplanation[] {
+  const text = content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+  const parsed = JSON.parse(text) as { risks?: unknown };
+  if (!Array.isArray(parsed.risks)) {
+    throw new Error("contract review response must include risks array");
+  }
+
+  return parsed.risks.map((item) => {
+    if (!item || typeof item !== "object") {
+      throw new Error("contract review risk must be an object");
+    }
+    const risk = item as Record<string, unknown>;
+    return {
+      clause: requireString(risk.clause, "clause"),
+      issue: requireString(risk.issue, "issue"),
+      suggestion: requireString(risk.suggestion, "suggestion"),
+      requiresHumanReview:
+        typeof risk.requiresHumanReview === "boolean" ? risk.requiresHumanReview : undefined
+    };
+  });
+}
+
+function requireString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`contract review risk ${field} must be a non-empty string`);
+  }
+  return value.trim();
 }
 
 function buildGroundedPrompt(input: GenerateAnswerInput): string {

@@ -99,6 +99,62 @@ test("OpenAICompatibleChatProvider generates grounded answers", async () => {
   assert.match(answer, /违约金过高/);
 });
 
+test("OpenAICompatibleChatProvider parses contract review explanations", async () => {
+  const fetchImpl: typeof fetch = async (_url, init) => {
+    const body = JSON.parse(String(init?.body)) as { messages: Array<{ role: string; content: string }> };
+    assert.match(body.messages.at(-1)?.content ?? "", /JSON schema/);
+    assert.match(body.messages.at(-1)?.content ?? "", /付款条件/);
+
+    return jsonResponse({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              risks: [
+                {
+                  clause: "付款条件",
+                  issue: "付款集中在完成后，乙方垫资压力较高。",
+                  suggestion: "建议拆分预付款、阶段款和验收尾款。",
+                  requiresHumanReview: true
+                }
+              ]
+            })
+          }
+        }
+      ]
+    });
+  };
+
+  const provider = new OpenAICompatibleChatProvider({
+    baseUrl: "https://models.example.test/v1",
+    apiKey: "secret",
+    model: "gemini-3.5-flash",
+    fetchImpl
+  });
+
+  const explanations = await provider.generateContractRiskExplanations({
+    chunks: [
+      {
+        section: "付款条件",
+        content: "项目完成后一次性支付。",
+        chunkIndex: 0
+      }
+    ],
+    risks: [
+      {
+        clause: "付款条件",
+        riskLevel: "medium",
+        issue: "付款节点集中。",
+        suggestion: "拆分付款节点。",
+        requiresHumanReview: true
+      }
+    ]
+  });
+
+  assert.equal(explanations[0]?.clause, "付款条件");
+  assert.match(explanations[0]?.issue ?? "", /垫资压力/);
+});
+
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status: 200,

@@ -49,6 +49,12 @@ defineEmits<{
         <span v-if="reviewResult">{{ reviewResult.risks.length }} 项</span>
       </div>
       <div v-if="reviewResult" class="risk-list">
+        <div class="review-source">
+          <span :class="['review-source-badge', reviewResult.reviewSource ?? 'rules']">
+            {{ reviewResult.reviewSource ?? "rules" }}
+          </span>
+          <span>{{ reviewResult.schemaValid === false ? "Schema fallback" : "Schema valid" }}</span>
+        </div>
         <article v-for="risk in reviewResult.risks" :key="risk.clause" class="risk-row">
           <div class="risk-title">
             <button class="risk-link" @click="$emit('focusRisk', risk)">{{ risk.clause }}</button>
@@ -58,6 +64,7 @@ defineEmits<{
           <p><b>修改建议：</b>{{ risk.suggestion }}</p>
           <footer>
             {{ risk.citation.section }} · chunk {{ risk.citation.chunkIndex + 1 }}
+            <span v-if="risk.analysisSource === 'model-assisted'">模型辅助说明</span>
             <span v-if="risk.requiresHumanReview">建议人工复核</span>
           </footer>
         </article>
@@ -66,4 +73,3 @@ defineEmits<{
     </div>
   </section>
 </template>
-

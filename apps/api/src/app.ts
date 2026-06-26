@@ -16,7 +16,7 @@ import { registerIngestionJobRoutes } from "./ingestion/ingestion-routes.js";
 import { buildQualityReport } from "./quality/quality-service.js";
 import { RagService } from "./rag/rag-service.js";
 import { buildReviewEvaluationReport } from "./review/review-eval-service.js";
-import { reviewContract } from "./review/review-service.js";
+import { reviewContractWithModel } from "./review/review-service.js";
 import { createRuntime } from "./runtime.js";
 import { DEFAULT_PROJECT_ID, type DocumentRepository } from "./store/repository.js";
 
@@ -334,7 +334,7 @@ export async function createApp(config: AppConfig) {
       return;
     }
 
-    const review = reviewContract(chunks);
+    const review = await reviewContractWithModel(chunks, chatProvider);
     await recordAuditLog(repository, request, {
       projectId,
       action: "contract.review",

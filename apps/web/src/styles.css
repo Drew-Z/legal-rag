@@ -663,6 +663,42 @@ textarea {
   gap: 12px;
 }
 
+.review-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #dbe4e5;
+  border-radius: 8px;
+  background: #f7fbfb;
+  color: #62727a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.review-source-badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #edf8f6;
+  color: #087c73;
+}
+
+.review-source-badge.model-assisted {
+  background: #e3f7ee;
+  color: #17643f;
+}
+
+.review-source-badge.fallback {
+  background: #fff1d9;
+  color: #7a4a08;
+}
+
+.review-source-badge.rules {
+  background: #eef2f7;
+  color: #34454c;
+}
+
 .risk-link {
   max-width: 100%;
   color: #20333a;
@@ -945,6 +981,7 @@ textarea {
 
   .history-list button,
   .chunk-row div,
+  .review-source,
   .risk-title,
   .risk-row footer,
   .check-row div,

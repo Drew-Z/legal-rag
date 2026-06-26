@@ -81,7 +81,7 @@ flowchart LR
 
 ## Contract Review Flow
 
-The MVP review service uses deterministic legal-risk rules. This keeps the demo stable and auditable:
+The review module uses deterministic legal-risk rules as the recall layer. This keeps the demo stable and auditable:
 
 - Payment terms: detects single final payment or unclear payment milestones.
 - Delivery: detects vague acceptance standards.
@@ -89,7 +89,7 @@ The MVP review service uses deterministic legal-risk rules. This keeps the demo 
 - IP: detects overly broad ownership and reuse restrictions.
 - Dispute resolution: detects one-sided venue clauses.
 
-The service returns both structured JSON and readable Markdown.
+When a chat model is available, the model can improve the explanation and suggestion for already recalled risks. The output must be schema-valid JSON and cannot add new risks. If the model fails or returns invalid JSON, the module falls back to the rule result. The service returns both structured JSON and readable Markdown.
 
 `GET /api/review/evaluation/report` runs labeled fixtures against the review service and reports expected risks, matched risks, missing risks, and overall risk recall. This keeps the rule-based review surface measurable while the project is still deterministic and demo-friendly.
 

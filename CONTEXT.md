@@ -11,7 +11,7 @@ This repository is a single-context project for a legal-document RAG demo and co
 - **Citation**: The traceable source evidence returned with RAG answers and contract-review risks.
 - **RAG Answer**: A grounded answer generated from retrieved chunks. It includes citations, retrieved chunks, rewritten question, and diagnostics.
 - **Diagnostics**: Retrieval and answer-source metadata shown in the UI, including vector candidates, keyword candidates, filtered candidates, reranked candidates, and answer source.
-- **Contract Risk**: A structured review finding with clause, risk level, issue, suggestion, citation, and human-review flag.
+- **Contract Risk**: A structured review finding with clause, risk level, issue, suggestion, citation, human-review flag, and analysis source.
 - **Quality Report**: Runtime and evaluation summary shown in the quality panel: model provider, vector store, corpus size, RAG evaluation, contract-review evaluation, and readiness checks.
 - **Evaluation Run**: A persisted quality report snapshot used to compare RAG and contract-review metrics over time.
 - **Audit Log**: A persisted project-space event recording the acting user, action, target, summary, and timestamp for sensitive operations.
@@ -24,6 +24,7 @@ This repository is a single-context project for a legal-document RAG demo and co
 ## Design Constraints
 
 - Legal answers must be citation-grounded or refuse when current materials are insufficient.
+- Contract review must remain rule-recalled and citation-grounded; model output may improve explanations only after schema validation.
 - Uploaded or seeded documents must be scoped to a project space.
 - Ingestion jobs should expose progress without storing raw document text in job records.
 - Project-space mutations and AI actions should record audit logs so future multi-user authorization can be reviewed.

@@ -1,5 +1,6 @@
 import type { ContractReviewResult, ContractRisk, DocumentChunk, RiskLevel } from "@legal-rag/shared";
 import { toCitation } from "../citations/citations.js";
+import type { ChatProvider, ContractRiskModelExplanation } from "../model-providers/openai-compatible.js";
 
 interface RiskRule {
   clause: string;
@@ -74,16 +75,83 @@ export function reviewContract(chunks: DocumentChunk[]): ContractReviewResult {
       clause: matched.section.includes(rule.clause) ? matched.section : rule.clause,
       riskLevel: rule.level,
       issue: rule.issue,
-      suggestion: rule.suggestion,
-      citation: toCitation(matched),
-      requiresHumanReview: rule.requiresHumanReview
-    });
+        suggestion: rule.suggestion,
+        citation: toCitation(matched),
+        requiresHumanReview: rule.requiresHumanReview,
+        analysisSource: "rule"
+      });
   }
 
   return {
     risks,
-    markdown: toMarkdown(risks)
+    markdown: toMarkdown(risks),
+    reviewSource: "rules",
+    schemaValid: true
   };
+}
+
+export async function reviewContractWithModel(
+  chunks: DocumentChunk[],
+  chatProvider?: ChatProvider
+): Promise<ContractReviewResult> {
+  const base = reviewContract(chunks);
+  if (base.risks.length === 0 || !chatProvider?.generateContractRiskExplanations) {
+    return base;
+  }
+
+  try {
+    const explanations = await chatProvider.generateContractRiskExplanations({
+      chunks,
+      risks: base.risks
+    });
+    const mergedRisks = mergeModelExplanations(base.risks, explanations);
+    return {
+      risks: mergedRisks,
+      markdown: toMarkdown(mergedRisks),
+      reviewSource: "model-assisted",
+      schemaValid: true
+    };
+  } catch (error) {
+    return {
+      ...base,
+      reviewSource: "fallback",
+      schemaValid: false,
+      modelError: error instanceof Error ? error.message : "contract review model failed"
+    };
+  }
+}
+
+function mergeModelExplanations(
+  risks: ContractRisk[],
+  explanations: ContractRiskModelExplanation[]
+): ContractRisk[] {
+  const byClause = new Map(explanations.map((explanation) => [explanation.clause, explanation]));
+
+  return risks.map((risk) => {
+    const explanation = byClause.get(risk.clause);
+    if (!explanation) {
+      return risk;
+    }
+
+    return validateContractRisk({
+      ...risk,
+      issue: explanation.issue,
+      suggestion: explanation.suggestion,
+      requiresHumanReview: explanation.requiresHumanReview ?? risk.requiresHumanReview,
+      analysisSource: "model-assisted"
+    });
+  });
+}
+
+function validateContractRisk(risk: ContractRisk): ContractRisk {
+  const allowedRiskLevels: RiskLevel[] = ["low", "medium", "high"];
+  if (!risk.clause || !allowedRiskLevels.includes(risk.riskLevel) || !risk.issue || !risk.suggestion) {
+    throw new Error("model-assisted contract risk failed schema validation");
+  }
+  if (!risk.citation?.documentId || typeof risk.requiresHumanReview !== "boolean") {
+    throw new Error("model-assisted contract risk citation or review flag is invalid");
+  }
+  return risk;
 }
 
 function toMarkdown(risks: ContractRisk[]): string {

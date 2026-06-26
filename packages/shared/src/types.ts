@@ -145,11 +145,15 @@ export interface ContractRisk {
   suggestion: string;
   citation: Citation;
   requiresHumanReview: boolean;
+  analysisSource?: "rule" | "model-assisted";
 }
 
 export interface ContractReviewResult {
   risks: ContractRisk[];
   markdown: string;
+  reviewSource?: "rules" | "model-assisted" | "fallback";
+  schemaValid?: boolean;
+  modelError?: string;
 }
 
 export interface ReviewEvaluationResult {
