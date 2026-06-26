@@ -5,12 +5,13 @@ import type {
   ContractRisk,
   DocumentChunk,
   LegalDocument,
+  QualityReport,
   RagAnswer
 } from "@legal-rag/shared";
 import { api } from "./api/client";
 import { sampleContract } from "./data/sampleContract";
 
-type View = "knowledge" | "qa" | "review";
+type View = "knowledge" | "qa" | "review" | "quality";
 type AnswerSource = NonNullable<RagAnswer["diagnostics"]>["answerSource"];
 
 interface QaHistoryItem {
@@ -31,6 +32,8 @@ const question = ref("违约责任是否合理？");
 const ragAnswer = ref<RagAnswer | null>(null);
 const qaHistory = ref<QaHistoryItem[]>([]);
 const reviewResult = ref<ContractReviewResult | null>(null);
+const qualityReport = ref<QualityReport | null>(null);
+const qualityLoading = ref(false);
 const apiStatus = ref("连接中");
 const busy = ref(false);
 const uploadProgress = ref(0);
@@ -47,6 +50,7 @@ const selectedChunk = computed(() =>
 onMounted(async () => {
   await checkHealth();
   await refreshDocuments();
+  await loadQualityReport();
 });
 
 async function checkHealth() {
@@ -63,6 +67,17 @@ async function refreshDocuments() {
   documents.value = result.documents;
   if (!selectedDocumentId.value && result.documents[0]) {
     await selectDocument(result.documents[0].id);
+  }
+}
+
+async function loadQualityReport() {
+  qualityLoading.value = true;
+  try {
+    qualityReport.value = await api.qualityReport();
+  } catch (error) {
+    notice.value = error instanceof Error ? error.message : "质量报告加载失败";
+  } finally {
+    qualityLoading.value = false;
   }
 }
 
@@ -269,6 +284,10 @@ function answerSourceLabel(source: AnswerSource) {
           <span class="nav-icon">!</span>
           合同审查
         </button>
+        <button :class="{ active: activeView === 'quality' }" @click="activeView = 'quality'">
+          <span class="nav-icon">✓</span>
+          质量面板
+        </button>
       </nav>
 
       <div class="status">
@@ -468,6 +487,58 @@ function answerSourceLabel(source: AnswerSource) {
             </article>
           </div>
           <div v-else class="empty-state">选择已导入文档或使用粘贴文本，点击开始审查。</div>
+        </div>
+      </section>
+
+      <section v-if="activeView === 'quality'" class="quality-layout">
+        <div class="panel">
+          <div class="panel-heading">
+            <h2>运行时状态</h2>
+            <span v-if="qualityReport">{{ new Date(qualityReport.generatedAt).toLocaleString() }}</span>
+          </div>
+          <div v-if="qualityReport" class="quality-metrics">
+            <article>
+              <span>模型提供商</span>
+              <strong>{{ qualityReport.runtime.modelProvider }}</strong>
+              <small>{{ qualityReport.runtime.chatModel ?? "mock answer" }}</small>
+            </article>
+            <article>
+              <span>向量库</span>
+              <strong>{{ qualityReport.runtime.vectorStore }}</strong>
+              <small>{{ qualityReport.runtime.embeddingModel }}</small>
+            </article>
+            <article>
+              <span>知识库</span>
+              <strong>{{ qualityReport.runtime.documentCount }} 份</strong>
+              <small>{{ qualityReport.runtime.chunkCount }} chunks</small>
+            </article>
+            <article>
+              <span>评测通过率</span>
+              <strong>{{ qualityReport.eval.passed }}/{{ qualityReport.eval.total }}</strong>
+              <small>{{ qualityReport.eval.answerableCases }} 可答 · {{ qualityReport.eval.refusalCases }} 拒答</small>
+            </article>
+          </div>
+          <div v-else class="empty-state">点击刷新后显示运行时和评测摘要。</div>
+          <button class="primary" :disabled="qualityLoading" @click="loadQualityReport">
+            {{ qualityLoading ? "刷新中" : "刷新质量报告" }}
+          </button>
+        </div>
+
+        <div class="panel result-panel">
+          <div class="panel-heading">
+            <h2>Readiness Checks</h2>
+            <span v-if="qualityReport">{{ qualityReport.checks.length }} 项</span>
+          </div>
+          <div v-if="qualityReport" class="check-list">
+            <article v-for="check in qualityReport.checks" :key="check.id" class="check-row">
+              <div>
+                <strong>{{ check.label }}</strong>
+                <span :class="['check-badge', check.status]">{{ check.status }}</span>
+              </div>
+              <p>{{ check.detail }}</p>
+            </article>
+          </div>
+          <div v-else class="empty-state">质量报告会汇总真实模型、pgvector、语料和评测护栏。</div>
         </div>
       </section>
     </main>

@@ -81,3 +81,32 @@ export interface ContractReviewResult {
   risks: ContractRisk[];
   markdown: string;
 }
+
+export type QualityStatus = "pass" | "warn" | "fail";
+
+export interface QualityCheck {
+  id: string;
+  label: string;
+  status: QualityStatus;
+  detail: string;
+}
+
+export interface QualityReport {
+  generatedAt: string;
+  runtime: {
+    modelProvider: "mock" | "openai-compatible";
+    vectorStore: "memory" | "pgvector";
+    embeddingModel: string;
+    chatModel?: string;
+    documentCount: number;
+    chunkCount: number;
+  };
+  eval: {
+    total: number;
+    passed: number;
+    failed: number;
+    answerableCases: number;
+    refusalCases: number;
+  };
+  checks: QualityCheck[];
+}

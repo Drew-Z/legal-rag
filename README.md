@@ -14,6 +14,7 @@
 - 合同风险审查，返回结构化 JSON 和 Markdown
 - Vue 前端三页工作台：知识库、智能问答、合同审查、上传进度、问答历史、来源高亮、报告导出
 - 问答诊断会展示回答来源：真实模型、本地回退或资料不足拒答
+- 质量面板展示运行时模型、pgvector 状态、知识库规模、评测通过率和 readiness checks
 - RAG 评测集，覆盖 citation 命中和资料不足拒答
 - 示例合同和面试讲解材料
 
@@ -94,6 +95,14 @@ DATABASE_URL=postgresql://postgres:你的密码@你的host:5432/postgres?sslmode
 ```http
 GET /api/health
 ```
+
+### 质量报告
+
+```http
+GET /api/quality/report
+```
+
+返回运行时配置、知识库规模、RAG 评测摘要和 readiness checks，可用于前端质量面板和项目演示。
 
 ### 导入文本
 

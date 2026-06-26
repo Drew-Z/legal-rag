@@ -182,7 +182,8 @@ h3 {
 }
 
 .qa-layout,
-.review-layout {
+.review-layout,
+.quality-layout {
   display: grid;
   grid-template-columns: minmax(320px, 0.8fr) minmax(420px, 1.4fr);
   gap: 16px;
@@ -571,6 +572,70 @@ textarea {
   font-weight: 800;
 }
 
+.quality-metrics,
+.check-list {
+  display: grid;
+  gap: 10px;
+}
+
+.quality-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quality-metrics article,
+.check-row {
+  padding: 12px;
+  border: 1px solid #e0e8e9;
+  border-radius: 8px;
+  background: #fbfcfc;
+}
+
+.quality-metrics span,
+.quality-metrics small,
+.check-row p {
+  color: #62727a;
+  font-size: 12px;
+}
+
+.quality-metrics strong {
+  display: block;
+  margin: 6px 0;
+  color: #17212b;
+  font-size: 22px;
+}
+
+.check-row div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.check-row p {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.check-badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.check-badge.pass {
+  background: #437e58;
+}
+
+.check-badge.warn {
+  background: #d9902f;
+}
+
+.check-badge.fail {
+  background: #b83b31;
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -582,7 +647,8 @@ textarea {
 
   .three-column,
   .qa-layout,
-  .review-layout {
+  .review-layout,
+  .quality-layout {
     grid-template-columns: 1fr;
   }
 
@@ -600,5 +666,9 @@ textarea {
 
   .diagnostics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quality-metrics {
+    grid-template-columns: 1fr;
   }
 }

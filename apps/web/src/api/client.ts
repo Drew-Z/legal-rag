@@ -2,6 +2,7 @@ import type {
   ContractReviewResult,
   DocumentChunk,
   LegalDocument,
+  QualityReport,
   RagAnswer
 } from "@legal-rag/shared";
 
@@ -42,6 +43,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   health: () => request<{ ok: boolean; modelProvider: string; vectorStore: string }>("/api/health"),
+  qualityReport: () => request<QualityReport>("/api/quality/report"),
   importText: (title: string, text: string) =>
     request<ImportTextResponse>("/api/documents/import-text", {
       method: "POST",

@@ -16,6 +16,7 @@ import {
   OpenAICompatibleEmbeddingProvider,
   type ChatProvider
 } from "./model-providers/openai-compatible.js";
+import { buildQualityReport } from "./quality/quality-service.js";
 import { RagService } from "./rag/rag-service.js";
 import { reviewContract } from "./review/review-service.js";
 import { PgRepository } from "./store/pg-repository.js";
@@ -46,6 +47,10 @@ export async function createApp(config: AppConfig) {
       vectorStore: config.vectorStore,
       embeddingModel: config.embedding.model
     });
+  });
+
+  app.get("/api/quality/report", async (_request, response) => {
+    response.json(await buildQualityReport(config, repository));
   });
 
   app.post("/api/documents/import-text", async (request, response) => {

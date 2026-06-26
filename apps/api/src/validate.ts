@@ -32,6 +32,14 @@ try {
   const health = await getJson<{ ok: boolean }>("/api/health");
   assert(health.ok, "health check failed");
 
+  const quality = await getJson<{
+    eval: { total: number; passed: number; failed: number };
+    checks: Array<{ status: string }>;
+  }>("/api/quality/report");
+  assert(quality.eval.total > 0, "expected quality eval cases");
+  assert(quality.eval.failed === 0, "expected quality eval to pass");
+  assert(quality.checks.length > 0, "expected quality checks");
+
   const imported = await postJson<{ documentId: string; chunkCount: number }>("/api/documents/import-text", {
     title: "sample service contract",
     text: sample
