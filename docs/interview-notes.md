@@ -2,11 +2,11 @@
 
 ## 1 分钟介绍
 
-这是一个面向法律问答和合同风险审查的 RAG 项目。用户可以导入合同文本或上传 TXT/PDF/DOCX，也可以初始化一批公开安全法律数据；系统会清洗文档、按条款切分 chunk、生成 embedding 并写入向量库。用户提问时，系统通过向量和关键词混合召回、重排和阈值过滤返回有引用来源的回答；合同审查模块会输出结构化风险，包括风险条款、等级、问题说明、修改建议、引用和是否建议人工复核。
+这是一个已经部署上线的法律问答和合同风险审查 RAG 项目。前端部署在 Render Static Site，API 部署在 Render Web Service，真实文档和 1024 维 embedding 持久化到 Supabase PostgreSQL + pgvector。用户可以导入合同文本或上传 TXT/PDF/DOCX，也可以初始化公开安全法律数据；系统会清洗文档、按条款切分 chunk、生成 embedding 并写入向量库。用户提问时，系统通过向量和关键词混合召回、重排和阈值过滤返回有引用来源的回答；合同审查模块会输出结构化风险，包括风险条款、等级、问题说明、修改建议、引用和是否建议人工复核。
 
 ## 3 分钟介绍
 
-项目重点不是做完整 SaaS，而是证明 AI 应用工程化能力。后端采用 Express + TypeScript，抽象了 documents、parsers、datasets、chunks、embeddings、vector-store、rag、review 和 citations 模块。当前使用 mock embedding 和 memory vector store，让项目在没有 API key 和数据库时也能演示完整闭环；同时保留 provider 和 vector store 边界，后续可以替换为 OpenAI embeddings、PostgreSQL + pgvector、模型 rerank 和异步队列。
+项目重点不是做完整 SaaS，而是证明 AI 应用工程化能力。后端采用 Express + TypeScript，抽象了 documents、parsers、datasets、chunks、embeddings、vector-store、rag、review 和 citations 模块。本地默认使用 mock embedding 和 memory vector store，保证没有 API key 和数据库时也能演示完整闭环；线上则使用 OpenAI-compatible 生成模型、Qwen3-Embedding-0.6B 和 Supabase pgvector，证明同一套 provider/vector store 边界可以平滑切换到真实持久化链路。
 
 前端采用 Vue 3 + Vite，实现知识库导入、上传进度、智能问答、问答历史、来源高亮、合同审查和报告导出。回答和审查结果都带 citations，核心目标是降低法律场景中的幻觉风险，让关键结论能追溯到原文片段。
 
@@ -18,7 +18,7 @@
 4. 文本清洗：统一换行、空格和空段落。
 5. Chunk 切分：优先按段落和条款切分，保留 source、page、section、chunkIndex、sourceUrl、docType 等元数据。
 6. Embedding：通过 provider adapter 生成向量。
-7. 向量入库：当前写入 memory vector store。
+7. 向量入库：本地默认写入 memory vector store，线上写入 Supabase PostgreSQL + pgvector。
 8. 查询增强：对“它/这个/上述”等短追问做轻量问题重写。
 9. 混合召回：向量检索和关键词检索各召回 top 20，再合并候选。
 10. Rerank：结合向量分、关键词分、section 命中、条款号和法律术语做轻量重排。
@@ -63,17 +63,16 @@ MVP 优先按空行分段，识别“第 X 条”作为 section。chunk size 约
 
 ## 后续如何扩展为生产系统
 
-- 使用 PostgreSQL + pgvector 持久化文档、chunk 和 embedding。
+- 将当前单用户登录升级为多用户、角色权限、项目空间授权和审计日志。
 - 增加 OCR 和表格/版式解析。
 - 使用 BullMQ 处理异步入库。
-- 使用真实 embedding、chat model 和模型 rerank。
-- 加入用户、权限、审计日志和数据隔离。
+- 引入专门 rerank 模型，并记录 rerank 前后召回指标。
 - 记录 prompt、模型版本、token 成本和评测趋势。
 
 ## 高频追问回答
 
 **为什么 MVP 用 mock embedding？**
-为了保证项目本地无 key 可运行，同时通过 provider adapter 保留替换真实模型的边界。
+为了保证项目本地无 key 可运行，同时通过 provider adapter 保留替换真实模型的边界。线上 demo 已经切到真实 embedding 和 Supabase pgvector。
 
 **如何证明回答不是编造的？**
 每个 answer 都返回 citations，包含命中的 section、chunkIndex 和 quote。前端直接展示引用。
@@ -90,6 +89,12 @@ MVP 阶段规则更稳定、可解释，适合演示结构化输出。生产环�
 **pgvector 如何接入？**
 保留 `VectorStore` 的 upsert 和 similaritySearch 语义，新增 PgVectorStore，把 embedding 写入 vector 字段，用 cosine distance 查询 topK。
 
+**为什么线上不用 Aiven？**
+因为 Supabase 已经提供托管 PostgreSQL + pgvector，继续使用 Supabase 可以减少迁移成本、配置复杂度和演示故障点。Aiven 可以作为同类替代方案，但当前 demo 不需要同时维护两个数据库平台。
+
+**为什么 Render 上用 Supabase Session Pooler？**
+Supabase direct connection 可能解析到 IPv6 地址，而部分托管运行环境到 IPv6 不可达。Session Pooler 提供更兼容的连接入口；项目代码也对 Supabase/pooler SSL 做了兼容处理。
+
 ## 简历描述
 
-法律智能机器人与合同审查 RAG 应用：基于 Vue 3、TypeScript、Express 和向量检索实现法律文档问答与合同风险审查，支持公开安全数据集初始化、TXT/PDF/DOCX 上传、条款级 chunk、mock embedding、混合召回、轻量 rerank、引用溯源、拒答评测和结构化风险报告；通过 provider adapter 和 vector store 抽象预留 pgvector、真实模型和异步入库能力。
+法律智能机器人与合同审查 RAG 应用：基于 Vue 3、TypeScript、Express、Supabase PostgreSQL + pgvector 和 OpenAI-compatible 模型实现法律文档问答与合同风险审查；支持 Render 线上部署、单用户登录、公开安全数据集初始化、TXT/PDF/DOCX 上传、条款级 chunk、真实 embedding、混合召回、轻量 rerank、引用溯源、拒答评测和结构化风险报告；通过 provider adapter 和 vector store 抽象保留 mock 本地演示、pgvector 持久化和后续异步入库扩展能力。

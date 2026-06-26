@@ -450,6 +450,10 @@ docker compose -f docker-compose.prod.yml config
 
 详见 `docs/architecture.md`。
 
+## 演示脚本
+
+面试讲解材料见 `docs/interview-notes.md`，线上演示脚本见 `docs/demo-script.md`。
+
 ## 面试亮点
 
 - 完整 RAG 闭环：导入、chunk、embedding、检索、回答、引用。
