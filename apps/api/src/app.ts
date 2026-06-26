@@ -1,7 +1,8 @@
 import cors from "cors";
 import express, { type Request, type Response } from "express";
 import multer from "multer";
-import type { ProjectSpace } from "@legal-rag/shared";
+import type { AuthStatus, ProjectSpace } from "@legal-rag/shared";
+import { AuthService, requireAuth } from "./auth/session.js";
 import { splitIntoChunks } from "./chunks/splitter.js";
 import type { AppConfig } from "./config/env.js";
 import { createPool } from "./db/pool.js";
@@ -30,6 +31,7 @@ import type { VectorStore } from "./vector-store/types.js";
 export async function createApp(config: AppConfig) {
   const app = express();
   const { repository, embeddings, vectorStore, chatProvider } = await createRuntime(config);
+  const auth = new AuthService(config.auth);
   const ingestion = new DocumentIngestionService(repository, embeddings, vectorStore);
   const rag = new RagService(embeddings, vectorStore, chatProvider);
   const upload = multer({
@@ -39,7 +41,7 @@ export async function createApp(config: AppConfig) {
     }
   });
 
-  app.use(cors({ origin: config.webOrigin }));
+  app.use(cors({ origin: config.webOrigin, credentials: true }));
   app.use(express.json({ limit: "2mb" }));
 
   app.get("/api/health", (_request, response) => {
@@ -50,6 +52,51 @@ export async function createApp(config: AppConfig) {
       embeddingModel: config.embedding.model
     });
   });
+
+  app.get("/api/auth/status", (request, response) => {
+    const user = auth.getUserFromRequest(request);
+    const status: AuthStatus = {
+      enabled: auth.enabled,
+      authenticated: !auth.enabled || Boolean(user),
+      user
+    };
+    response.json(status);
+  });
+
+  app.post("/api/auth/login", (request, response) => {
+    if (!auth.enabled) {
+      response.json({
+        enabled: false,
+        authenticated: true
+      } satisfies AuthStatus);
+      return;
+    }
+
+    const email = String(request.body?.email ?? "").trim();
+    const password = String(request.body?.password ?? "");
+    const user = auth.authenticate(email, password);
+    if (!user) {
+      response.status(401).json({ error: "invalid email or password" });
+      return;
+    }
+
+    response.setHeader("Set-Cookie", auth.createCookie(user));
+    response.json({
+      enabled: true,
+      authenticated: true,
+      user
+    } satisfies AuthStatus);
+  });
+
+  app.post("/api/auth/logout", (_request, response) => {
+    response.setHeader("Set-Cookie", auth.clearCookie());
+    response.json({
+      enabled: auth.enabled,
+      authenticated: false
+    } satisfies AuthStatus);
+  });
+
+  app.use("/api", requireAuth(auth));
 
   app.get("/api/quality/report", async (_request, response) => {
     response.json(await buildQualityReport(config, repository));

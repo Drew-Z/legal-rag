@@ -6,6 +6,16 @@ export interface AppConfig {
   modelProvider: "mock" | "openai-compatible";
   vectorStore: "memory" | "pgvector";
   databaseUrl?: string;
+  auth?: {
+    enabled: boolean;
+    email: string;
+    name: string;
+    password?: string;
+    sessionSecret?: string;
+    cookieName: string;
+    secureCookie: boolean;
+    sessionTtlHours: number;
+  };
   llm?: {
     baseUrl: string;
     apiKey: string;
@@ -28,6 +38,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): AppConfig {
   const modelProvider = env.MODEL_PROVIDER === "openai-compatible" ? "openai-compatible" : "mock";
   const vectorStore = env.VECTOR_STORE === "pgvector" ? "pgvector" : "memory";
   const embeddingDimensions = Number(env.EMBEDDING_DIM ?? (modelProvider === "mock" ? 96 : 1024));
+  const auth = parseAuthConfig(env);
 
   if (!Number.isFinite(embeddingDimensions) || embeddingDimensions <= 0) {
     throw new Error("EMBEDDING_DIM must be a positive number");
@@ -42,6 +53,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): AppConfig {
       modelProvider,
       vectorStore,
       databaseUrl: env.DATABASE_URL,
+      auth,
       llm,
       embedding
     };
@@ -53,10 +65,41 @@ export function parseConfig(env: NodeJS.ProcessEnv): AppConfig {
     modelProvider,
     vectorStore,
     databaseUrl: env.DATABASE_URL,
+    auth,
     embedding: {
       model: "mock",
       dimensions: 96
     }
+  };
+}
+
+function parseAuthConfig(env: NodeJS.ProcessEnv): NonNullable<AppConfig["auth"]> {
+  const enabled = env.AUTH_ENABLED === "true";
+  const sessionTtlHours = Number(env.AUTH_SESSION_TTL_HOURS ?? 8);
+
+  if (!Number.isFinite(sessionTtlHours) || sessionTtlHours <= 0) {
+    throw new Error("AUTH_SESSION_TTL_HOURS must be a positive number");
+  }
+
+  if (enabled) {
+    if (!env.AUTH_PASSWORD) {
+      throw new Error("AUTH_PASSWORD is required when AUTH_ENABLED=true");
+    }
+
+    if (!env.AUTH_SESSION_SECRET || env.AUTH_SESSION_SECRET.length < 16) {
+      throw new Error("AUTH_SESSION_SECRET must be at least 16 characters when AUTH_ENABLED=true");
+    }
+  }
+
+  return {
+    enabled,
+    email: env.AUTH_EMAIL ?? "demo@legal-rag.local",
+    name: env.AUTH_NAME ?? "演示用户",
+    password: env.AUTH_PASSWORD,
+    sessionSecret: env.AUTH_SESSION_SECRET,
+    cookieName: env.AUTH_COOKIE_NAME ?? "legal_rag_session",
+    secureCookie: env.AUTH_COOKIE_SECURE === "true",
+    sessionTtlHours
   };
 }
 

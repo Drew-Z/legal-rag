@@ -8,6 +8,17 @@ export interface ProjectSpace {
   isDefault?: boolean;
 }
 
+export interface AuthUser {
+  email: string;
+  name: string;
+}
+
+export interface AuthStatus {
+  enabled: boolean;
+  authenticated: boolean;
+  user?: AuthUser;
+}
+
 export interface LegalDocument {
   id: string;
   projectId: string;

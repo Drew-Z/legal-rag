@@ -1,4 +1,5 @@
 import type {
+  AuthStatus,
   ContractReviewResult,
   DocumentChunk,
   EvaluationReport,
@@ -32,6 +33,7 @@ export interface CreateProjectResponse {
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
+    credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
       ...options?.headers
@@ -49,6 +51,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   health: () => request<{ ok: boolean; modelProvider: string; vectorStore: string }>("/api/health"),
+  authStatus: () => request<AuthStatus>("/api/auth/status"),
+  login: (email: string, password: string) =>
+    request<AuthStatus>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password })
+    }),
+  logout: () =>
+    request<AuthStatus>("/api/auth/logout", {
+      method: "POST",
+      body: JSON.stringify({})
+    }),
   qualityReport: () => request<QualityReport>("/api/quality/report"),
   evaluationReport: () => request<EvaluationReport>("/api/evaluation/report"),
   listProjects: () => request<{ projects: ProjectSpace[] }>("/api/projects"),
@@ -101,6 +114,7 @@ function uploadRequest<T>(
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", path);
+    xhr.withCredentials = true;
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         onProgress?.(Math.round((event.loaded / event.total) * 100));

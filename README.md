@@ -6,6 +6,7 @@
 
 - 导入合同或法律文本，支持粘贴文本、TXT、PDF、DOCX
 - 支持项目空间，同一套应用中隔离不同客户、案件或合同包的知识库
+- 可选单用户登录门禁，适合部署演示时保护工作台
 - 一键初始化公开安全法律数据集，保留来源标签和来源 URL
 - SHA-256 文档判重，避免重复入库
 - 文本清洗和条款级 chunk 切分
@@ -67,6 +68,14 @@ EMBEDDING_MODEL=Qwen3-Embedding-0.6B
 EMBEDDING_DIM=1024
 
 DATABASE_URL=
+
+AUTH_ENABLED=false
+AUTH_EMAIL=demo@legal-rag.local
+AUTH_NAME=演示用户
+AUTH_PASSWORD=
+AUTH_SESSION_SECRET=
+AUTH_SESSION_TTL_HOURS=8
+AUTH_COOKIE_SECURE=false
 ```
 
 默认使用 mock provider，不需要真实密钥。
@@ -87,6 +96,18 @@ DATABASE_URL=postgresql://postgres:你的密码@你的host:5432/postgres?sslmode
 ```
 
 `MODEL_PROVIDER=openai-compatible` 时，生成模型走 `LLM_*`，embedding 默认复用同一组 `LLM_*`；如果你给 `EMBEDDING_BASE_URL` 和 `EMBEDDING_API_KEY`，embedding 就会单独走那一组凭据。
+
+如需开启单用户登录：
+
+```text
+AUTH_ENABLED=true
+AUTH_EMAIL=owner@example.com
+AUTH_PASSWORD=请填写强密码
+AUTH_SESSION_SECRET=至少16位的随机字符串
+AUTH_COOKIE_SECURE=false
+```
+
+生产 HTTPS 部署时把 `AUTH_COOKIE_SECURE` 改为 `true`。
 
 如果当前 token 没有 chat model 权限，系统会继续使用真实 embedding + pgvector 检索，并回退到本地可解释答案模板。
 
@@ -325,7 +346,7 @@ npm.cmd run build
 
 ## 后续优化
 
-- 增加登录鉴权和用户级项目空间权限。
+- 增加多用户、角色权限和用户级项目空间授权。
 - 扩充真实合同数据集与脱敏样本治理流程。
 - 增加评测趋势、召回率、拒答准确率和审查召回率报表。
 - 增加 CI、镜像发布和云部署脚本。

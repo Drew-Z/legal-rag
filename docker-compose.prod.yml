@@ -32,6 +32,13 @@ services:
       EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-Qwen3-Embedding-0.6B}
       EMBEDDING_DIM: ${EMBEDDING_DIM:-1024}
+      AUTH_ENABLED: ${AUTH_ENABLED:-false}
+      AUTH_EMAIL: ${AUTH_EMAIL:-demo@legal-rag.local}
+      AUTH_NAME: ${AUTH_NAME:-演示用户}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-}
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET:-}
+      AUTH_SESSION_TTL_HOURS: ${AUTH_SESSION_TTL_HOURS:-8}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
     depends_on:
       postgres:
         condition: service_healthy

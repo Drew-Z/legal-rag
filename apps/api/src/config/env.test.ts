@@ -82,4 +82,44 @@ test("parseConfig keeps mock defaults without secrets", () => {
   assert.equal(config.embedding.model, "mock");
   assert.equal(config.embedding.dimensions, 96);
   assert.equal(config.databaseUrl, undefined);
+  assert.equal(config.auth?.enabled, false);
+});
+
+test("parseConfig enables optional single-user auth", () => {
+  const config = parseConfig({
+    AUTH_ENABLED: "true",
+    AUTH_EMAIL: "owner@example.test",
+    AUTH_NAME: "Owner",
+    AUTH_PASSWORD: "correct-password",
+    AUTH_SESSION_SECRET: "session-secret-for-tests",
+    AUTH_SESSION_TTL_HOURS: "12"
+  });
+
+  assert.equal(config.auth?.enabled, true);
+  assert.equal(config.auth?.email, "owner@example.test");
+  assert.equal(config.auth?.name, "Owner");
+  assert.equal(config.auth?.password, "correct-password");
+  assert.equal(config.auth?.sessionSecret, "session-secret-for-tests");
+  assert.equal(config.auth?.sessionTtlHours, 12);
+});
+
+test("parseConfig rejects incomplete auth configuration", () => {
+  assert.throws(
+    () =>
+      parseConfig({
+        AUTH_ENABLED: "true",
+        AUTH_SESSION_SECRET: "session-secret-for-tests"
+      }),
+    /AUTH_PASSWORD is required/
+  );
+
+  assert.throws(
+    () =>
+      parseConfig({
+        AUTH_ENABLED: "true",
+        AUTH_PASSWORD: "correct-password",
+        AUTH_SESSION_SECRET: "short"
+      }),
+    /AUTH_SESSION_SECRET must be at least 16 characters/
+  );
 });

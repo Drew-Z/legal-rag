@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from "vue";
 import type {
+  AuthStatus,
   ContractReviewResult,
   ContractRisk,
   DocumentChunk,
@@ -24,6 +25,10 @@ interface QaHistoryItem {
 }
 
 const activeView = ref<View>("knowledge");
+const authStatus = ref<AuthStatus | null>(null);
+const loginEmail = ref("demo@legal-rag.local");
+const loginPassword = ref("");
+const loginLoading = ref(false);
 const projects = ref<ProjectSpace[]>([]);
 const selectedProjectId = ref("project_default");
 const projectName = ref("");
@@ -53,17 +58,26 @@ const selectedProject = computed(() =>
   projects.value.find((project) => project.id === selectedProjectId.value)
 );
 
+const authRequired = computed(() => authStatus.value?.enabled === true && !authStatus.value.authenticated);
+
 const selectedChunk = computed(() =>
   chunks.value.find((chunk) => chunkKey(chunk.documentId, chunk.chunkIndex) === selectedChunkKey.value)
 );
 
 onMounted(async () => {
   await checkHealth();
+  await loadAuthStatus();
+  if (!authRequired.value) {
+    await bootstrapWorkspace();
+  }
+});
+
+async function bootstrapWorkspace() {
   await refreshProjects();
   await refreshDocuments();
   await loadQualityReport();
   await loadEvaluationReport();
-});
+}
 
 async function checkHealth() {
   try {
@@ -71,6 +85,50 @@ async function checkHealth() {
     apiStatus.value = `${health.modelProvider} / ${health.vectorStore}`;
   } catch {
     apiStatus.value = "API 未连接";
+  }
+}
+
+async function loadAuthStatus() {
+  try {
+    authStatus.value = await api.authStatus();
+    if (authStatus.value.user?.email) {
+      loginEmail.value = authStatus.value.user.email;
+    }
+  } catch {
+    authStatus.value = {
+      enabled: false,
+      authenticated: true
+    };
+  }
+}
+
+async function login() {
+  loginLoading.value = true;
+  notice.value = "";
+  try {
+    authStatus.value = await api.login(loginEmail.value.trim(), loginPassword.value);
+    loginPassword.value = "";
+    await bootstrapWorkspace();
+  } catch (error) {
+    notice.value = error instanceof Error ? error.message : "登录失败";
+  } finally {
+    loginLoading.value = false;
+  }
+}
+
+async function logout() {
+  try {
+    authStatus.value = await api.logout();
+  } finally {
+    documents.value = [];
+    chunks.value = [];
+    selectedDocumentId.value = "";
+    selectedChunkKey.value = "";
+    ragAnswer.value = null;
+    qaHistory.value = [];
+    reviewResult.value = null;
+    qualityReport.value = null;
+    evaluationReport.value = null;
   }
 }
 
@@ -345,7 +403,31 @@ function answerSourceLabel(source: AnswerSource) {
 </script>
 
 <template>
-  <div class="app-shell">
+  <div v-if="authRequired" class="login-shell">
+    <form class="login-panel" @submit.prevent="login">
+      <div class="brand login-brand">
+        <div class="brand-mark">LR</div>
+        <div>
+          <strong>Legal RAG</strong>
+          <span>合同审查工作台</span>
+        </div>
+      </div>
+      <label>
+        邮箱
+        <input v-model="loginEmail" autocomplete="username" />
+      </label>
+      <label>
+        密码
+        <input v-model="loginPassword" type="password" autocomplete="current-password" />
+      </label>
+      <button class="primary" :disabled="loginLoading">
+        {{ loginLoading ? "登录中" : "登录" }}
+      </button>
+      <p v-if="notice" class="notice">{{ notice }}</p>
+    </form>
+  </div>
+
+  <div v-else class="app-shell">
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-mark">LR</div>
@@ -393,6 +475,7 @@ function answerSourceLabel(source: AnswerSource) {
         <span>API</span>
         <strong>{{ apiStatus }}</strong>
       </div>
+      <button v-if="authStatus?.enabled" class="logout-button" @click="logout">退出登录</button>
     </aside>
 
     <main class="workspace">
