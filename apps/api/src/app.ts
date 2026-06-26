@@ -19,7 +19,7 @@ import { DEFAULT_PROJECT_ID, type DocumentRepository } from "./store/repository.
 
 export async function createApp(config: AppConfig) {
   const app = express();
-  const { repository, embeddings, vectorStore, chatProvider } = await createRuntime(config);
+  const { repository, embeddings, vectorStore, chatProvider, evaluationHistory } = await createRuntime(config);
   const auth = new AuthService(config.auth);
   const ingestion = new DocumentIngestionService(repository, embeddings, vectorStore);
   const rag = new RagService(embeddings, vectorStore, chatProvider);
@@ -88,7 +88,13 @@ export async function createApp(config: AppConfig) {
   app.use("/api", requireAuth(auth));
 
   app.get("/api/quality/report", async (_request, response) => {
-    response.json(await buildQualityReport(config, repository));
+    const report = await buildQualityReport(config, repository);
+    await evaluationHistory.record(report);
+    response.json(report);
+  });
+
+  app.get("/api/quality/trends", async (_request, response) => {
+    response.json({ points: await evaluationHistory.list(20) });
   });
 
   app.get("/api/evaluation/report", async (_request, response) => {

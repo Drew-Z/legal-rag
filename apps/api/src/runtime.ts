@@ -8,6 +8,11 @@ import {
   OpenAICompatibleEmbeddingProvider,
   type ChatProvider
 } from "./model-providers/openai-compatible.js";
+import {
+  MemoryEvaluationHistoryStore,
+  PgEvaluationHistoryStore,
+  type EvaluationHistoryStore
+} from "./quality/evaluation-history.js";
 import { PgRepository } from "./store/pg-repository.js";
 import { DEFAULT_PROJECT, type DocumentRepository, Repository } from "./store/repository.js";
 import { MemoryVectorStore } from "./vector-store/memory.js";
@@ -19,6 +24,7 @@ export interface AppRuntime {
   embeddings: EmbeddingProvider;
   vectorStore: VectorStore;
   chatProvider?: ChatProvider;
+  evaluationHistory: EvaluationHistoryStore;
 }
 
 export async function createRuntime(config: AppConfig): Promise<AppRuntime> {
@@ -53,7 +59,8 @@ export async function createRuntime(config: AppConfig): Promise<AppRuntime> {
       repository,
       embeddings,
       vectorStore: new PgVectorStore(pool),
-      chatProvider
+      chatProvider,
+      evaluationHistory: new PgEvaluationHistoryStore(pool)
     };
   }
 
@@ -61,7 +68,7 @@ export async function createRuntime(config: AppConfig): Promise<AppRuntime> {
     repository: new Repository(),
     embeddings,
     vectorStore: new MemoryVectorStore(),
-    chatProvider
+    chatProvider,
+    evaluationHistory: new MemoryEvaluationHistoryStore()
   };
 }
-

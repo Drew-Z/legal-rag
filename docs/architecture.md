@@ -72,8 +72,10 @@ flowchart LR
 6. `MemoryVectorStore` stores chunks and vectors in process memory; `PgVectorStore` persists chunk embeddings in PostgreSQL + pgvector.
 7. `POST /api/rag/query` rewrites short contextual questions, embeds the rewritten question, recalls top 20 candidates from both vector and keyword search inside the selected project, filters weak candidates, reranks down to top 5, generates a grounded answer, and returns citations plus diagnostics.
 8. `GET /api/quality/report` aggregates runtime configuration, corpus size, the deterministic RAG eval suite, contract-review eval suite, and readiness checks for the web quality panel.
-9. `GET /api/evaluation/report` exposes every deterministic eval result so the web UI can show citation-hit, expected topic, refusal evidence, and aggregate accuracy metrics, not just a summary score.
-10. When the query is outside the current legal/contract corpus or retrieval evidence is too weak, the RAG service refuses with a "current materials cannot confirm" answer and no citations.
+9. Each quality report is recorded as an evaluation run. Memory mode keeps recent runs in process; pgvector mode stores them in PostgreSQL `evaluation_runs`.
+10. `GET /api/quality/trends` returns recent evaluation runs for the quality panel.
+11. `GET /api/evaluation/report` exposes every deterministic eval result so the web UI can show citation-hit, expected topic, refusal evidence, and aggregate accuracy metrics, not just a summary score.
+12. When the query is outside the current legal/contract corpus or retrieval evidence is too weak, the RAG service refuses with a "current materials cannot confirm" answer and no citations.
 
 ## Contract Review Flow
 
@@ -95,4 +97,4 @@ The service returns both structured JSON and readable Markdown.
 - Move document processing to BullMQ when ingestion becomes asynchronous.
 - Replace the current lightweight rerank with a cross-encoder or model reranker.
 - Add OCR and table-aware parsing for scanned or complex contracts.
-- Add historical trend storage for RAG and review evaluation reports.
+- Expand the current quality trend storage into long-term charts, release comparisons, and CI-published reports.

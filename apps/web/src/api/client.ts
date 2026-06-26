@@ -6,6 +6,7 @@ import type {
   LegalDocument,
   ProjectSpace,
   QualityReport,
+  QualityTrendReport,
   RagAnswer,
   ReviewEvaluationReport
 } from "@legal-rag/shared";
@@ -70,6 +71,7 @@ export const api = {
       body: JSON.stringify({})
     }),
   qualityReport: () => request<QualityReport>("/api/quality/report"),
+  qualityTrends: () => request<QualityTrendReport>("/api/quality/trends"),
   evaluationReport: () => request<EvaluationReport>("/api/evaluation/report"),
   reviewEvaluationReport: () => request<ReviewEvaluationReport>("/api/review/evaluation/report"),
   listProjects: () => request<{ projects: ProjectSpace[] }>("/api/projects"),

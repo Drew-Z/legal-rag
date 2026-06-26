@@ -165,6 +165,28 @@ export interface QualityReport {
   checks: QualityCheck[];
 }
 
+export interface QualityTrendPoint {
+  id: string;
+  generatedAt: string;
+  modelProvider: QualityReport["runtime"]["modelProvider"];
+  vectorStore: QualityReport["runtime"]["vectorStore"];
+  embeddingModel: string;
+  chatModel?: string;
+  documentCount: number;
+  chunkCount: number;
+  ragPassed: number;
+  ragTotal: number;
+  citationAccuracy: number;
+  refusalAccuracy: number;
+  reviewPassed: number;
+  reviewTotal: number;
+  reviewRecall: number;
+}
+
+export interface QualityTrendReport {
+  points: QualityTrendPoint[];
+}
+
 export interface EvaluationResult {
   id: string;
   passed: boolean;

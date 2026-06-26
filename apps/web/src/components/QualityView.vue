@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { EvaluationReport, QualityReport, ReviewEvaluationReport } from "@legal-rag/shared";
+import type { EvaluationReport, QualityReport, QualityTrendReport, ReviewEvaluationReport } from "@legal-rag/shared";
 
 defineProps<{
   qualityReport: QualityReport | null;
+  qualityTrendReport: QualityTrendReport | null;
   evaluationReport: EvaluationReport | null;
   reviewEvaluationReport: ReviewEvaluationReport | null;
   qualityLoading: boolean;
@@ -89,6 +90,30 @@ function formatPercent(value: number) {
       <div v-else class="empty-state">质量报告会汇总真实模型、pgvector、语料和评测护栏。</div>
     </div>
 
+    <div class="panel result-panel eval-panel trend-panel">
+      <div class="panel-heading">
+        <h2>质量趋势</h2>
+        <span v-if="qualityTrendReport">{{ qualityTrendReport.points.length }} 条记录</span>
+      </div>
+      <div v-if="qualityTrendReport && qualityTrendReport.points.length > 0" class="trend-list">
+        <article v-for="point in qualityTrendReport.points" :key="point.id" class="trend-row">
+          <div>
+            <strong>{{ new Date(point.generatedAt).toLocaleString() }}</strong>
+            <span>{{ point.modelProvider }} / {{ point.vectorStore }}</span>
+          </div>
+          <div class="trend-metrics">
+            <span>RAG {{ point.ragPassed }}/{{ point.ragTotal }}</span>
+            <span>Citation {{ formatPercent(point.citationAccuracy) }}</span>
+            <span>拒答 {{ formatPercent(point.refusalAccuracy) }}</span>
+            <span>审查 {{ point.reviewPassed }}/{{ point.reviewTotal }}</span>
+            <span>召回 {{ formatPercent(point.reviewRecall) }}</span>
+            <span>语料 {{ point.documentCount }} 份 / {{ point.chunkCount }} chunks</span>
+          </div>
+        </article>
+      </div>
+      <div v-else class="empty-state">刷新质量报告后，这里会保留最近的评测趋势。</div>
+    </div>
+
     <div class="panel result-panel eval-panel">
       <div class="panel-heading">
         <h2>评测用例</h2>
@@ -143,4 +168,3 @@ function formatPercent(value: number) {
     </div>
   </section>
 </template>
-

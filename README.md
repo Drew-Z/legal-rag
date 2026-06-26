@@ -47,6 +47,7 @@
 - 评测报告页面展示每条 citation 命中和拒答用例的通过原因
 - 质量报告展示 citation 命中率、可回答准确率和拒答准确率
 - 质量报告展示合同审查风险召回率
+- 质量趋势会持久化最近的 RAG/合同审查评测记录，便于观察改动前后指标变化
 - RAG 评测集，覆盖 citation 命中和资料不足拒答
 - GitHub Actions CI 覆盖 typecheck、unit test、validate、evaluate、evaluate:review、build 和 Docker Compose 配置检查
 - 示例合同和面试讲解材料
@@ -274,6 +275,14 @@ GET /api/quality/report
 
 返回运行时配置、知识库规模、RAG 评测摘要和 readiness checks，可用于前端质量面板和项目演示。
 
+### 质量趋势
+
+```http
+GET /api/quality/trends
+```
+
+返回最近的评测记录。线上 pgvector 模式会写入 PostgreSQL `evaluation_runs` 表，本地 memory 模式仅保留当前进程内趋势。
+
 ### 评测报告
 
 ```http
@@ -463,7 +472,7 @@ docker compose -f docker-compose.prod.yml config
 
 ## 架构说明
 
-详见 `docs/architecture.md`。领域词汇见 `CONTEXT.md`，关键架构决策见 `docs/adr/`。
+中文总览见 `docs/project-guide.zh-CN.md`。架构说明见 `docs/architecture.md`。领域词汇见 `CONTEXT.md`，关键架构决策见 `docs/adr/`。
 
 ## 演示脚本
 

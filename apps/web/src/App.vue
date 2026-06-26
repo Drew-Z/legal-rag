@@ -9,6 +9,7 @@ import type {
   LegalDocument,
   ProjectSpace,
   QualityReport,
+  QualityTrendReport,
   RagAnswer,
   ReviewEvaluationReport
 } from "@legal-rag/shared";
@@ -42,6 +43,7 @@ const ragAnswer = ref<RagAnswer | null>(null);
 const qaHistory = ref<QaHistoryItem[]>([]);
 const reviewResult = ref<ContractReviewResult | null>(null);
 const qualityReport = ref<QualityReport | null>(null);
+const qualityTrendReport = ref<QualityTrendReport | null>(null);
 const evaluationReport = ref<EvaluationReport | null>(null);
 const reviewEvaluationReport = ref<ReviewEvaluationReport | null>(null);
 const qualityLoading = ref(false);
@@ -80,6 +82,7 @@ async function bootstrapWorkspace() {
   await refreshProjects();
   await refreshDocuments();
   await loadQualityReport();
+  await loadQualityTrends();
   await loadEvaluationReport();
   await loadReviewEvaluationReport();
 }
@@ -146,6 +149,7 @@ async function logout() {
     qaHistory.value = [];
     reviewResult.value = null;
     qualityReport.value = null;
+    qualityTrendReport.value = null;
     evaluationReport.value = null;
     reviewEvaluationReport.value = null;
   }
@@ -219,6 +223,14 @@ async function loadQualityReport() {
   }
 }
 
+async function loadQualityTrends() {
+  try {
+    qualityTrendReport.value = await api.qualityTrends();
+  } catch (error) {
+    notice.value = friendlyError(error, "质量趋势加载失败");
+  }
+}
+
 async function loadEvaluationReport() {
   try {
     evaluationReport.value = await api.evaluationReport();
@@ -246,6 +258,7 @@ async function refreshQualityReports() {
     qualityReport.value = quality;
     evaluationReport.value = evaluation;
     reviewEvaluationReport.value = reviewEvaluation;
+    qualityTrendReport.value = await api.qualityTrends();
   } catch (error) {
     notice.value = friendlyError(error, "质量报告加载失败");
   } finally {
@@ -531,6 +544,7 @@ function sleep(ms: number) {
       <QualityView
         v-if="activeView === 'quality'"
         :quality-report="qualityReport"
+        :quality-trend-report="qualityTrendReport"
         :evaluation-report="evaluationReport"
         :review-evaluation-report="reviewEvaluationReport"
         :quality-loading="qualityLoading"

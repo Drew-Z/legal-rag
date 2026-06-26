@@ -59,5 +59,25 @@ CREATE INDEX IF NOT EXISTS documents_project_id_idx ON documents(project_id);
 CREATE INDEX IF NOT EXISTS chunks_document_id_idx ON chunks(document_id);
 CREATE INDEX IF NOT EXISTS chunks_embedding_hnsw_idx ON chunks USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX IF NOT EXISTS chunks_keyword_idx ON chunks USING gin (to_tsvector('simple', title || ' ' || section || ' ' || content));
+
+CREATE TABLE IF NOT EXISTS evaluation_runs (
+  id text PRIMARY KEY,
+  generated_at timestamptz NOT NULL,
+  model_provider text NOT NULL,
+  vector_store text NOT NULL,
+  embedding_model text NOT NULL,
+  chat_model text,
+  document_count integer NOT NULL,
+  chunk_count integer NOT NULL,
+  rag_passed integer NOT NULL,
+  rag_total integer NOT NULL,
+  citation_accuracy double precision NOT NULL,
+  refusal_accuracy double precision NOT NULL,
+  review_passed integer NOT NULL,
+  review_total integer NOT NULL,
+  review_recall double precision NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS evaluation_runs_generated_at_idx ON evaluation_runs(generated_at DESC);
 `;
 }
