@@ -210,6 +210,111 @@
     "expectedCitationHints": ["自编安全样本：劳务外包服务合同", "解除条款"]
   },
   {
+    "id": "data-processing-purpose",
+    "question": "数据处理委托协议为什么要限制处理目的和范围？",
+    "shouldAnswer": true,
+    "expectedTopic": "数据处理目的",
+    "expectedCitationHints": ["自编安全样本：数据处理委托协议", "处理目的与范围"]
+  },
+  {
+    "id": "data-processing-security-audit",
+    "question": "个人信息安全措施条款还应补充哪些审计要求？",
+    "shouldAnswer": true,
+    "expectedTopic": "个人信息安全",
+    "expectedCitationHints": ["自编安全样本：数据处理委托协议", "个人信息安全措施"]
+  },
+  {
+    "id": "data-processing-subcontract",
+    "question": "数据处理工作分包给第三方需要注意什么？",
+    "shouldAnswer": true,
+    "expectedTopic": "分包处理",
+    "expectedCitationHints": ["自编安全样本：数据处理委托协议", "分包处理"]
+  },
+  {
+    "id": "data-processing-breach-notice",
+    "question": "数据泄露通知条款应明确哪些内容？",
+    "shouldAnswer": true,
+    "expectedTopic": "数据泄露通知",
+    "expectedCitationHints": ["自编安全样本：数据处理委托协议", "数据泄露通知"]
+  },
+  {
+    "id": "data-processing-deletion-proof",
+    "question": "服务终止后数据返还与删除条款应如何约定？",
+    "shouldAnswer": true,
+    "expectedTopic": "返还与删除",
+    "expectedCitationHints": ["自编安全样本：数据处理委托协议", "返还与删除"]
+  },
+  {
+    "id": "equity-transfer-subject",
+    "question": "股权转让意向书的交易标的应明确什么？",
+    "shouldAnswer": true,
+    "expectedTopic": "交易标的",
+    "expectedCitationHints": ["自编安全样本：股权转让意向书", "交易标的"]
+  },
+  {
+    "id": "equity-due-diligence",
+    "question": "股权转让尽职调查通常要覆盖哪些方面？",
+    "shouldAnswer": true,
+    "expectedTopic": "尽职调查",
+    "expectedCitationHints": ["自编安全样本：股权转让意向书", "尽职调查"]
+  },
+  {
+    "id": "equity-deposit-risk",
+    "question": "股权转让意向书中的定金安排应补充哪些规则？",
+    "shouldAnswer": true,
+    "expectedTopic": "定金安排",
+    "expectedCitationHints": ["自编安全样本：股权转让意向书", "定金安排"]
+  },
+  {
+    "id": "equity-reps-warranties",
+    "question": "股权转让陈述与保证条款应关注哪些权利负担？",
+    "shouldAnswer": true,
+    "expectedTopic": "陈述与保证",
+    "expectedCitationHints": ["自编安全样本：股权转让意向书", "陈述与保证"]
+  },
+  {
+    "id": "equity-exclusivity",
+    "question": "股权转让意向书排他期条款应补充哪些安排？",
+    "shouldAnswer": true,
+    "expectedTopic": "排他期",
+    "expectedCitationHints": ["自编安全样本：股权转让意向书", "排他期"]
+  },
+  {
+    "id": "lease-use",
+    "question": "房屋租赁合同的租赁用途条款应限制哪些行为？",
+    "shouldAnswer": true,
+    "expectedTopic": "租赁用途",
+    "expectedCitationHints": ["自编安全样本：房屋租赁合同", "租赁用途"]
+  },
+  {
+    "id": "lease-deposit-return",
+    "question": "房屋租赁押金条款应明确哪些返还规则？",
+    "shouldAnswer": true,
+    "expectedTopic": "押金返还",
+    "expectedCitationHints": ["自编安全样本：房屋租赁合同", "租金与押金"]
+  },
+  {
+    "id": "lease-maintenance",
+    "question": "房屋租赁维修责任应如何区分出租方和承租方？",
+    "shouldAnswer": true,
+    "expectedTopic": "维修责任",
+    "expectedCitationHints": ["自编安全样本：房屋租赁合同", "维修责任"]
+  },
+  {
+    "id": "lease-early-termination",
+    "question": "房屋租赁提前解约条款应补充哪些费用结算规则？",
+    "shouldAnswer": true,
+    "expectedTopic": "提前解约",
+    "expectedCitationHints": ["自编安全样本：房屋租赁合同", "提前解约"]
+  },
+  {
+    "id": "lease-handover",
+    "question": "房屋租赁交还验收时应结清哪些事项？",
+    "shouldAnswer": true,
+    "expectedTopic": "交还验收",
+    "expectedCitationHints": ["自编安全样本：房屋租赁合同", "交还验收"]
+  },
+  {
     "id": "refuse-criminal-case",
     "question": "盗窃罪的量刑标准是什么？",
     "shouldAnswer": false,

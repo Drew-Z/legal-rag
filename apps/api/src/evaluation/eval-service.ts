@@ -23,6 +23,9 @@ export interface EvalSummary {
   failed: number;
   answerableCases: number;
   refusalCases: number;
+  citationAccuracy: number;
+  answerableAccuracy: number;
+  refusalAccuracy: number;
   results: EvaluationResult[];
 }
 
@@ -49,6 +52,8 @@ export async function runMockRagEvaluation(): Promise<EvalSummary> {
 
   const passed = results.filter((result) => result.passed).length;
   const answerableCases = evalCases.filter((item) => item.shouldAnswer).length;
+  const answerableResults = results.filter((result) => result.kind === "answerable");
+  const refusalResults = results.filter((result) => result.kind === "refusal");
 
   return {
     total: results.length,
@@ -56,6 +61,9 @@ export async function runMockRagEvaluation(): Promise<EvalSummary> {
     failed: results.length - passed,
     answerableCases,
     refusalCases: evalCases.length - answerableCases,
+    citationAccuracy: ratio(answerableResults.filter((result) => result.citationHit).length, answerableResults.length),
+    answerableAccuracy: ratio(answerableResults.filter((result) => result.passed).length, answerableResults.length),
+    refusalAccuracy: ratio(refusalResults.filter((result) => result.refused).length, refusalResults.length),
     results
   };
 }
@@ -70,6 +78,9 @@ export async function buildEvaluationReport(): Promise<EvaluationReport> {
     failed: summary.failed,
     answerableCases: summary.answerableCases,
     refusalCases: summary.refusalCases,
+    citationAccuracy: summary.citationAccuracy,
+    answerableAccuracy: summary.answerableAccuracy,
+    refusalAccuracy: summary.refusalAccuracy,
     results: summary.results
   };
 }
@@ -88,6 +99,10 @@ function evaluateAnswer(item: EvalCase, answer: RagAnswer): EvaluationResult {
     return {
       id: item.id,
       passed: refused,
+      kind: "refusal",
+      expectedTopic: item.expectedTopic,
+      citationHit: false,
+      refused,
       reason: refused ? "refused as expected" : "expected refusal without citations",
       citationText,
       answer: answer.answer
@@ -100,8 +115,20 @@ function evaluateAnswer(item: EvalCase, answer: RagAnswer): EvaluationResult {
   return {
     id: item.id,
     passed,
+    kind: "answerable",
+    expectedTopic: item.expectedTopic,
+    citationHit: missingHints.length === 0 && answer.citations.length > 0,
+    refused: REFUSAL_PATTERN.test(answer.answer),
     reason: passed ? "matched expected citation hints" : `missing citation hints: ${missingHints.join(", ")}`,
     citationText,
     answer: answer.answer
   };
+}
+
+function ratio(numerator: number, denominator: number): number {
+  if (denominator === 0) {
+    return 0;
+  }
+
+  return Number((numerator / denominator).toFixed(4));
 }

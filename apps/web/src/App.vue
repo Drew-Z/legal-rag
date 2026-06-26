@@ -400,6 +400,10 @@ function answerSourceLabel(source: AnswerSource) {
 
   return labels[source];
 }
+
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
 </script>
 
 <template>
@@ -699,6 +703,21 @@ function answerSourceLabel(source: AnswerSource) {
               <strong>{{ qualityReport.eval.passed }}/{{ qualityReport.eval.total }}</strong>
               <small>{{ qualityReport.eval.answerableCases }} 可答 · {{ qualityReport.eval.refusalCases }} 拒答</small>
             </article>
+            <article>
+              <span>Citation 命中率</span>
+              <strong>{{ formatPercent(qualityReport.eval.citationAccuracy) }}</strong>
+              <small>可回答用例的引用命中</small>
+            </article>
+            <article>
+              <span>可回答准确率</span>
+              <strong>{{ formatPercent(qualityReport.eval.answerableAccuracy) }}</strong>
+              <small>回答且引用正确</small>
+            </article>
+            <article>
+              <span>拒答准确率</span>
+              <strong>{{ formatPercent(qualityReport.eval.refusalAccuracy) }}</strong>
+              <small>越界问题无引用拒答</small>
+            </article>
           </div>
           <div v-else class="empty-state">点击刷新后显示运行时和评测摘要。</div>
           <button class="primary" :disabled="qualityLoading" @click="refreshQualityReports">
@@ -737,6 +756,11 @@ function answerSourceLabel(source: AnswerSource) {
                 <span :class="['check-badge', item.passed ? 'pass' : 'fail']">
                   {{ item.passed ? "pass" : "fail" }}
                 </span>
+              </div>
+              <div class="eval-meta">
+                <span>{{ item.kind }}</span>
+                <span>{{ item.expectedTopic }}</span>
+                <span>{{ item.kind === "answerable" ? (item.citationHit ? "citation hit" : "citation miss") : (item.refused ? "refused" : "not refused") }}</span>
               </div>
               <p>{{ item.reason }}</p>
               <small>{{ item.answer }}</small>

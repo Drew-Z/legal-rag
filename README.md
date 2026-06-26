@@ -18,7 +18,9 @@
 - 问答诊断会展示回答来源：真实模型、本地回退或资料不足拒答
 - 质量面板展示运行时模型、pgvector 状态、知识库规模、评测通过率和 readiness checks
 - 评测报告页面展示每条 citation 命中和拒答用例的通过原因
+- 质量报告展示 citation 命中率、可回答准确率和拒答准确率
 - RAG 评测集，覆盖 citation 命中和资料不足拒答
+- GitHub Actions CI 覆盖 typecheck、unit test、validate、evaluate、build 和 Docker Compose 配置检查
 - 示例合同和面试讲解材料
 
 ## 技术栈
@@ -315,7 +317,7 @@ MVP 使用可解释规则识别高频合同风险：
 
 示例合同在 `samples/sample-contract.txt`。前端也提供“填入示例合同”按钮。
 
-公开安全数据集在 `datasets/public-safe/legal-public-dataset.jsonl`，包含公开法律片段、合同示范文本安全摘要和自编脱敏样本。可在前端点击“初始化公开数据集”，也可调用 `POST /api/datasets/seed`。
+公开安全数据集在 `datasets/public-safe/legal-public-dataset.jsonl`，包含公开法律片段、合同示范文本安全摘要和自编脱敏样本，覆盖技术服务、软件采购、SaaS、劳务外包、数据处理、股权转让意向和房屋租赁等场景。可在前端点击“初始化公开数据集”，也可调用 `POST /api/datasets/seed`。
 
 ## 验证与评测
 
@@ -328,8 +330,19 @@ npm.cmd --workspace apps/api run validate:pgvector
 npm.cmd run build
 ```
 
-`validate` 覆盖健康检查、文本导入、重复导入、数据集初始化、TXT 上传、问答和合同审查。`evaluate` 会读取 `eval/rag-eval-set.json`，检查可回答问题的引用命中，以及越界问题是否拒答。
+`validate` 覆盖健康检查、文本导入、重复导入、数据集初始化、TXT 上传、问答和合同审查。`evaluate` 会读取 `eval/rag-eval-set.json`，检查可回答问题的引用命中，以及越界问题是否拒答。质量面板会展示总通过率、citation 命中率、可回答准确率和拒答准确率。
 `validate:pgvector` 会使用 `.env` 中的外部 PostgreSQL 和真实 embedding 模型，验证数据集入库、pgvector 检索和引用返回。
+
+CI 工作流位于 `.github/workflows/ci.yml`，无密钥环境会运行：
+
+```powershell
+npm.cmd run typecheck
+npm.cmd --workspace apps/api run test:unit
+npm.cmd --workspace apps/api run validate
+npm.cmd --workspace apps/api run evaluate
+npm.cmd run build
+docker compose -f docker-compose.prod.yml config
+```
 
 ## 架构说明
 

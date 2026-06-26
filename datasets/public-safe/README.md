@@ -8,6 +8,20 @@ This dataset is designed for a legal RAG demo. It avoids private or sensitive co
 - Public model-contract style summaries.
 - Self-authored, fictional sample contracts for risk review demos.
 
+## Coverage
+
+The dataset currently covers:
+
+- Civil Code contract excerpts
+- Labor Contract Law excerpts
+- Technology service model-contract points
+- Software purchase model-contract points
+- SaaS subscription services
+- Labor outsourcing services
+- Data processing entrustment
+- Equity transfer letters of intent
+- Office lease agreements
+
 ## Metadata Requirements
 
 Each JSONL row is one source document and includes:

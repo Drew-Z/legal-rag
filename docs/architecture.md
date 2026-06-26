@@ -5,6 +5,7 @@ Legal RAG is a small monorepo that demonstrates a complete legal-document RAG lo
 ```mermaid
 flowchart LR
   Web["Vue Web App"] --> API["Express API"]
+  API --> Auth["optional single-user auth gate"]
   API --> Projects["projects: workspace isolation"]
   API --> Upload["upload: TXT/PDF/DOCX parsers"]
   API --> Dataset["public-safe dataset seed"]
@@ -34,6 +35,8 @@ flowchart LR
 - `eval/rag-eval-set.json`: citation and refusal evaluation cases.
 - `VECTOR_STORE=pgvector`: persists documents, chunks, metadata, and embeddings in PostgreSQL + pgvector.
 - `projects`: workspace boundary for documents, duplicate detection, retrieval, and contract review. `project_default` keeps local demo behavior backward-compatible.
+- `AUTH_ENABLED=true`: optional single-user login gate for deployed demos. It protects business APIs with a signed HTTP-only cookie while leaving local demos disabled by default.
+- `.github/workflows/ci.yml`: no-secret CI path for typecheck, unit tests, validation, evaluation, build, and Docker Compose config checks.
 
 ## RAG Flow
 
@@ -45,7 +48,7 @@ flowchart LR
 6. `MemoryVectorStore` stores chunks and vectors in process memory; `PgVectorStore` persists chunk embeddings in PostgreSQL + pgvector.
 7. `POST /api/rag/query` rewrites short contextual questions, embeds the rewritten question, recalls top 20 candidates from both vector and keyword search inside the selected project, filters weak candidates, reranks down to top 5, generates a grounded answer, and returns citations plus diagnostics.
 8. `GET /api/quality/report` aggregates runtime configuration, corpus size, the deterministic RAG eval suite, and readiness checks for the web quality panel.
-9. `GET /api/evaluation/report` exposes every deterministic eval result so the web UI can show citation-hit and refusal evidence, not just a summary score.
+9. `GET /api/evaluation/report` exposes every deterministic eval result so the web UI can show citation-hit, expected topic, refusal evidence, and aggregate accuracy metrics, not just a summary score.
 10. When the query is outside the current legal/contract corpus or retrieval evidence is too weak, the RAG service refuses with a "current materials cannot confirm" answer and no citations.
 
 ## Contract Review Flow
@@ -66,4 +69,4 @@ The service returns both structured JSON and readable Markdown.
 - Move document processing to BullMQ when ingestion becomes asynchronous.
 - Replace the current lightweight rerank with a cross-encoder or model reranker.
 - Add OCR and table-aware parsing for scanned or complex contracts.
-- Expand the eval suite to track citation hit rate, refusal accuracy, and risk-review recall.
+- Add risk-review recall evaluation against labeled contract-risk fixtures.

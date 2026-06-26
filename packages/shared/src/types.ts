@@ -128,6 +128,9 @@ export interface QualityReport {
     failed: number;
     answerableCases: number;
     refusalCases: number;
+    citationAccuracy: number;
+    answerableAccuracy: number;
+    refusalAccuracy: number;
   };
   checks: QualityCheck[];
 }
@@ -135,6 +138,10 @@ export interface QualityReport {
 export interface EvaluationResult {
   id: string;
   passed: boolean;
+  kind: "answerable" | "refusal";
+  expectedTopic: string;
+  citationHit: boolean;
+  refused: boolean;
   reason: string;
   citationText: string;
   answer: string;
@@ -147,5 +154,8 @@ export interface EvaluationReport {
   failed: number;
   answerableCases: number;
   refusalCases: number;
+  citationAccuracy: number;
+  answerableAccuracy: number;
+  refusalAccuracy: number;
   results: EvaluationResult[];
 }

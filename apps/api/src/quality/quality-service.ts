@@ -48,7 +48,10 @@ export async function buildQualityReport(
       passed: evalSummary.passed,
       failed: evalSummary.failed,
       answerableCases: evalSummary.answerableCases,
-      refusalCases: evalSummary.refusalCases
+      refusalCases: evalSummary.refusalCases,
+      citationAccuracy: evalSummary.citationAccuracy,
+      answerableAccuracy: evalSummary.answerableAccuracy,
+      refusalAccuracy: evalSummary.refusalAccuracy
     },
     checks: [
       runtimeModelCheck(config),
@@ -119,7 +122,7 @@ function evalCheck(evalSummary: EvalSummary): QualityCheck {
     id: "rag-eval",
     label: "RAG 评测集",
     status: evalSummary.failed === 0 ? "pass" : "fail",
-    detail: `${evalSummary.passed}/${evalSummary.total} 通过`
+    detail: `${evalSummary.passed}/${evalSummary.total} 通过，可回答准确率 ${formatPercent(evalSummary.answerableAccuracy)}`
   };
 }
 
@@ -128,6 +131,10 @@ function citationGuardrailCheck(evalSummary: EvalSummary): QualityCheck {
     id: "citation-guardrail",
     label: "引用与拒答护栏",
     status: evalSummary.failed === 0 && evalSummary.refusalCases > 0 ? "pass" : "warn",
-    detail: `${evalSummary.answerableCases} 个可回答用例，${evalSummary.refusalCases} 个拒答用例`
+    detail: `引用命中率 ${formatPercent(evalSummary.citationAccuracy)}，拒答准确率 ${formatPercent(evalSummary.refusalAccuracy)}`
   };
+}
+
+function formatPercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
 }

@@ -95,6 +95,12 @@ function extractTerms(query: string): string[] {
     "数据安全",
     "服务可用性",
     "数据与隐私",
+    "数据处理",
+    "个人信息",
+    "安全审计",
+    "分包处理",
+    "数据泄露通知",
+    "返还与删除",
     "隐私",
     "数据",
     "泄露通知",
@@ -116,7 +122,21 @@ function extractTerms(query: string): string[] {
     "争议金额",
     "责任上限",
     "书面劳动合同",
-    "商业秘密"
+    "商业秘密",
+    "股权转让",
+    "交易标的",
+    "尽职调查",
+    "定金安排",
+    "陈述与保证",
+    "权利负担",
+    "排他期",
+    "租赁用途",
+    "租金",
+    "押金",
+    "押金返还",
+    "维修责任",
+    "提前解约",
+    "交还验收"
   ].filter((term) => normalized.includes(term));
 
   return [...new Set([...rawTerms, ...legalTerms])];

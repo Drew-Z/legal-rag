@@ -11,9 +11,23 @@ const LEGAL_TERMS = [
   "责任",
   "知识产权",
   "保密",
+  "数据处理",
+  "个人信息",
+  "数据泄露",
+  "分包",
   "争议",
   "管辖",
-  "解除"
+  "解除",
+  "股权转让",
+  "尽职调查",
+  "定金",
+  "陈述与保证",
+  "排他期",
+  "租赁",
+  "押金",
+  "维修",
+  "提前解约",
+  "交还验收"
 ];
 
 export function rerankChunks(question: string, chunks: ScoredChunk[], limit: number): ScoredChunk[] {
