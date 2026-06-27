@@ -25,10 +25,10 @@ defineEmits<{
 <template>
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark">LR</div>
+      <div class="brand-mark">BL</div>
       <div>
-        <strong>Legal RAG</strong>
-        <span>合同审查工作台</span>
+        <strong>Biau Labs</strong>
+        <span>Legal RAG 工作台</span>
       </div>
     </div>
 
@@ -81,4 +81,3 @@ defineEmits<{
     <button v-if="authEnabled" class="logout-button" @click="$emit('logout')">退出登录</button>
   </aside>
 </template>
-

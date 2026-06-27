@@ -12,7 +12,8 @@ defineEmits<{
 
 <template>
   <header class="topbar">
-    <div>
+    <div class="topbar-copy">
+      <p class="topbar-eyebrow">AI APPLICATION WORKBENCH</p>
       <h1>法律智能机器人与合同审查 RAG 应用</h1>
       <p>{{ selectedProjectName }} · 导入公开安全数据、上传文档、查看引用依据，并导出结构化风险报告。</p>
     </div>
@@ -22,4 +23,3 @@ defineEmits<{
     </div>
   </header>
 </template>
-

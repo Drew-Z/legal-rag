@@ -17,10 +17,10 @@ defineEmits<{
   <div class="login-shell">
     <form class="login-panel" @submit.prevent="$emit('login')">
       <div class="brand login-brand">
-        <div class="brand-mark">LR</div>
+        <div class="brand-mark">BL</div>
         <div>
-          <strong>Legal RAG</strong>
-          <span>合同审查工作台</span>
+          <strong>Biau Labs</strong>
+          <span>Legal RAG 工作台</span>
         </div>
       </div>
       <label>
@@ -43,4 +43,3 @@ defineEmits<{
     </form>
   </div>
 </template>
-
