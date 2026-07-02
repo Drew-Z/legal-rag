@@ -30,10 +30,16 @@ https://legal-rag-web.onrender.com
 3. 如果 Render 免费实例冷启动，先等待 API health 返回成功，再开始演示。
 
 也可以用前端 smoke 脚本检查线上登录和 health。账号密码通过环境变量提供，不要写入仓库：
+脚本会先检查 API health，再在启用认证时登录，初始化或复用公开安全数据集，
+随后执行一次 RAG 问答并断言 answer、citations、retrieved chunks 和 diagnostics 可用，
+最后再打开 Web 页面确认工作台可以渲染。
 
 ```powershell
 $env:WEB_E2E_BASE_URL="https://legal-rag-web.onrender.com"
 $env:WEB_E2E_HEALTH_URL="https://legal-rag-api-9bki.onrender.com/api/health"
+$env:WEB_E2E_API_BASE_URL="https://legal-rag-api-9bki.onrender.com"
+$env:WEB_E2E_PROJECT_ID="project_default"
+$env:WEB_E2E_QA_QUESTION="技术服务合同里，验收标准不明确会带来什么风险？"
 $env:WEB_E2E_EMAIL="<demo-email>"
 $env:WEB_E2E_PASSWORD="<demo-password>"
 $env:PLAYWRIGHT_CHROMIUM_EXECUTABLE="C:/Program Files/Google/Chrome/Application/chrome.exe"
@@ -100,10 +106,12 @@ API health 慢：
 登录失败：
 
 - 检查 API 环境变量 `AUTH_ENABLED`、`AUTH_EMAIL`、`AUTH_PASSWORD`。
+- 如果使用多用户演示账号，检查 `AUTH_USERS_JSON` 中的 demo 用户是否仍存在且密码未轮换。
 - 检查 `WEB_ORIGIN` 是否等于前端地址。
 - 检查 `AUTH_COOKIE_SECURE=true` 和 `AUTH_COOKIE_SAME_SITE=None`。
 
 问答失败：
 
 - 先看 `/api/health` 是否返回 `vectorStore=pgvector`。
+- 再运行 smoke，确认失败发生在 auth、公开数据集初始化、ingestion job 轮询还是 `/api/rag/query`。
 - 再看 Render API logs 是否有模型 key、embedding 维度或 Supabase 连接错误。
