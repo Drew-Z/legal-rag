@@ -1,5 +1,5 @@
 import cors from "cors";
-import express, { type Request, type Response } from "express";
+import express, { type NextFunction, type Request, type Response } from "express";
 import multer from "multer";
 import type { AuthStatus, ProjectSpace } from "@legal-rag/shared";
 import { recordAuditLog } from "./audit/audit-log.js";
@@ -352,6 +352,16 @@ export async function createApp(config: AppConfig) {
       summary: `合同审查：识别 ${review.risks.length} 项风险`
     });
     response.json(review);
+  });
+
+  app.use((error: unknown, _request: Request, response: Response, next: NextFunction) => {
+    console.error(error);
+    if (response.headersSent) {
+      next(error);
+      return;
+    }
+
+    response.status(500).json({ error: "internal server error" });
   });
 
   return app;
