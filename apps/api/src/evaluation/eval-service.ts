@@ -85,8 +85,17 @@ export async function buildEvaluationReport(): Promise<EvaluationReport> {
   };
 }
 
-export async function loadEvalCases(): Promise<EvalCase[]> {
-  return JSON.parse(await readFile(EVAL_SET_PATH, "utf8")) as EvalCase[];
+export async function loadEvalCases(evalSetPath = EVAL_SET_PATH): Promise<EvalCase[]> {
+  try {
+    return JSON.parse(await readFile(evalSetPath, "utf8")) as EvalCase[];
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      console.warn(`[quality] RAG eval set missing at ${evalSetPath}; returning an unavailable evaluation report.`);
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 function evaluateAnswer(item: EvalCase, answer: RagAnswer): EvaluationResult {
@@ -131,4 +140,8 @@ function ratio(numerator: number, denominator: number): number {
   }
 
   return Number((numerator / denominator).toFixed(4));
+}
+
+function isMissingFileError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT";
 }

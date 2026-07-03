@@ -200,6 +200,87 @@ a {
   margin-bottom: var(--space-8);
 }
 
+.login-hint,
+.demo-access {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.login-hint {
+  padding: var(--space-10, 10px) var(--space-12);
+  border-left: 4px solid var(--blue);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--blue) 8%, white);
+}
+
+.demo-access {
+  display: grid;
+  gap: var(--space-10, 10px);
+  padding: var(--space-12);
+  border: 1px solid color-mix(in oklch, var(--green) 24%, transparent);
+  border-left: 4px solid var(--green);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--green) 8%, white);
+}
+
+.demo-access strong,
+.demo-access span {
+  display: block;
+}
+
+.demo-access strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.demo-access span {
+  margin-top: 3px;
+}
+
+.demo-access dl {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+}
+
+.demo-access dl div {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.demo-access dt,
+.demo-access dd {
+  margin: 0;
+}
+
+.demo-access dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.demo-access dd {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.demo-access p {
+  margin: 0;
+}
+
+.demo-fill {
+  width: 100%;
+  min-height: 38px;
+}
+
 .sidebar {
   position: sticky;
   top: var(--space-24);

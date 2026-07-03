@@ -8,7 +8,7 @@
 
 - Web: `https://legal-rag-web.onrender.com`
 - API health: `https://legal-rag-api-9bki.onrender.com/api/health`
-- Demo 保护：线上环境启用登录门禁，登录账号和密码不提交到仓库。
+- Demo 保护：线上环境启用登录门禁，真实登录账号和密码不提交到仓库。若部署环境显式配置了公开 demo 凭据，登录页会展示“公开演示凭据”和填入按钮；没有展示时代表该入口仍是受控演示。
 
 ## 5 分钟演示路径
 
@@ -183,6 +183,16 @@ Web 前端支持单独配置线上 API 地址。本地开发可保持为空，�
 ```text
 VITE_API_BASE_URL=https://你的-api.onrender.com
 ```
+
+如果要让访客无需私下询问即可试用受保护工作台，可以在 Web 部署环境显式配置公开 demo 提示：
+
+```text
+VITE_PUBLIC_DEMO_EMAIL=demo@legal-rag.local
+VITE_PUBLIC_DEMO_PASSWORD=
+VITE_PUBLIC_DEMO_NOTE=仅用于公开安全数据集演示，可随时回收。
+```
+
+`VITE_PUBLIC_DEMO_PASSWORD` 会被打包进前端页面，所以只能填写低权限、可回收、已确认可公开的 demo 密码，并且要和 API 侧 `AUTH_PASSWORD` 或 `AUTH_USERS_JSON` 中对应 demo 用户的密码保持一致。不要把真实后台管理员密码、模型 key、数据库连接串或 Render/Supabase 运维配置写入这些变量或仓库。
 
 如果当前 token 没有 chat model 权限，系统会继续使用真实 embedding + pgvector 检索，并回退到本地可解释答案模板。
 

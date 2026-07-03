@@ -34,8 +34,17 @@ export async function buildReviewEvaluationReport(): Promise<ReviewEvaluationRep
   };
 }
 
-export async function loadReviewEvalCases(): Promise<ReviewEvalCase[]> {
-  return JSON.parse(await readFile(REVIEW_EVAL_SET_PATH, "utf8")) as ReviewEvalCase[];
+export async function loadReviewEvalCases(reviewEvalSetPath = REVIEW_EVAL_SET_PATH): Promise<ReviewEvalCase[]> {
+  try {
+    return JSON.parse(await readFile(reviewEvalSetPath, "utf8")) as ReviewEvalCase[];
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      console.warn(`[quality] Contract review eval set missing at ${reviewEvalSetPath}; returning an unavailable evaluation report.`);
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 function evaluateReviewCase(item: ReviewEvalCase): ReviewEvaluationResult {
@@ -69,4 +78,8 @@ function ratio(numerator: number, denominator: number): number {
   }
 
   return Number((numerator / denominator).toFixed(4));
+}
+
+function isMissingFileError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT";
 }

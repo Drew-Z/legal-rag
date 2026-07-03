@@ -137,6 +137,15 @@ function corpusCheck(documentCount: number, chunkCount: number): QualityCheck {
 }
 
 function evalCheck(evalSummary: EvalSummary): QualityCheck {
+  if (evalSummary.total === 0) {
+    return {
+      id: "rag-eval",
+      label: "RAG 评测集",
+      status: "warn",
+      detail: "评测集文件未随部署提供，运行时状态可用但无法计算 RAG 评测通过率"
+    };
+  }
+
   return {
     id: "rag-eval",
     label: "RAG 评测集",
@@ -146,6 +155,15 @@ function evalCheck(evalSummary: EvalSummary): QualityCheck {
 }
 
 function citationGuardrailCheck(evalSummary: EvalSummary): QualityCheck {
+  if (evalSummary.total === 0) {
+    return {
+      id: "citation-guardrail",
+      label: "引用与拒答护栏",
+      status: "warn",
+      detail: "评测集文件未随部署提供，无法验证引用命中和拒答准确率"
+    };
+  }
+
   return {
     id: "citation-guardrail",
     label: "引用与拒答护栏",
@@ -155,6 +173,15 @@ function citationGuardrailCheck(evalSummary: EvalSummary): QualityCheck {
 }
 
 function reviewEvalCheck(evalSummary: { failed: number; matchedRiskCount: number; expectedRiskCount: number; recall: number }): QualityCheck {
+  if (evalSummary.expectedRiskCount === 0) {
+    return {
+      id: "review-eval",
+      label: "合同审查召回",
+      status: "warn",
+      detail: "合同审查评测集文件未随部署提供，无法计算风险召回率"
+    };
+  }
+
   return {
     id: "review-eval",
     label: "合同审查召回",

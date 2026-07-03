@@ -35,6 +35,7 @@ COPY --from=prod-deps /app/node_modules node_modules
 COPY --from=build /app/apps/api/dist apps/api/dist
 COPY --from=build /app/packages/shared packages/shared
 COPY datasets datasets
+COPY eval eval
 
 EXPOSE 4000
 CMD ["npm", "--workspace", "apps/api", "run", "start"]

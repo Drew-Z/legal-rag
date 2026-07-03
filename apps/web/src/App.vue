@@ -29,7 +29,10 @@ import type { QaHistoryItem, View } from "./types";
 
 const activeView = ref<View>("knowledge");
 const authStatus = ref<AuthStatus | null>(null);
-const loginEmail = ref("demo@legal-rag.local");
+const publicDemoEmail = String(import.meta.env.VITE_PUBLIC_DEMO_EMAIL ?? "demo@legal-rag.local").trim() || "demo@legal-rag.local";
+const publicDemoPassword = String(import.meta.env.VITE_PUBLIC_DEMO_PASSWORD ?? "");
+const publicDemoNote = String(import.meta.env.VITE_PUBLIC_DEMO_NOTE ?? "").trim();
+const loginEmail = ref(publicDemoEmail);
 const loginPassword = ref("");
 const loginLoading = ref(false);
 const projects = ref<ProjectSpace[]>([]);
@@ -142,6 +145,15 @@ async function login() {
   } finally {
     loginLoading.value = false;
   }
+}
+
+function fillDemoCredentials() {
+  if (!publicDemoPassword) {
+    return;
+  }
+
+  loginEmail.value = publicDemoEmail;
+  loginPassword.value = publicDemoPassword;
 }
 
 async function logout() {
@@ -550,6 +562,10 @@ function sleep(ms: number) {
     v-model:login-password="loginPassword"
     :login-loading="loginLoading"
     :notice="notice"
+    :demo-email="publicDemoEmail"
+    :demo-password="publicDemoPassword"
+    :demo-note="publicDemoNote"
+    @fill-demo-credentials="fillDemoCredentials"
     @login="login"
   />
 
