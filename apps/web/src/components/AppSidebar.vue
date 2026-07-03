@@ -25,9 +25,9 @@ defineEmits<{
 <template>
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark">BL</div>
+      <div class="brand-mark"><img src="/biau-port-icon.svg" alt="" aria-hidden="true" /></div>
       <div>
-        <strong>Biau Labs</strong>
+        <strong>BIAU Port / 泊岸</strong>
         <span>Legal RAG 工作台</span>
       </div>
     </div>
