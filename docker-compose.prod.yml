@@ -50,6 +50,10 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NPM_CONFIG_REGISTRY: ${NPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_PUBLIC_DEMO_EMAIL: ${VITE_PUBLIC_DEMO_EMAIL:-}
+        VITE_PUBLIC_DEMO_PASSWORD: ${VITE_PUBLIC_DEMO_PASSWORD:-}
+        VITE_PUBLIC_DEMO_NOTE: ${VITE_PUBLIC_DEMO_NOTE:-}
     ports:
       - "8080:80"
     depends_on:
