@@ -2,8 +2,6 @@
 
 法律文档问答与合同风险审查工作台。项目提供从文档导入、公开安全数据集初始化、chunk/embedding、混合检索、引用溯源问答、合同审查到质量评测面板的一套完整 RAG 工程示例。
 
-![Legal RAG 问答与引用截图](docs/assets/screenshots/rag-citations-diagnostics.png)
-
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6)
 ![Vue](https://img.shields.io/badge/Vue-3.5-42b883)
 ![Express](https://img.shields.io/badge/Express-5.2-111111)
@@ -29,20 +27,14 @@
 
 ## Preview
 
-| 知识库与入库 | RAG 引用与 diagnostics |
+The current workbench is organized around four visitor-visible surfaces. Open the app locally or in a deployed demo to review the latest UI; screenshots under `docs/assets/screenshots/` are review artifacts and should be regenerated before being embedded in the GitHub README.
+
+| Surface | Purpose |
 | --- | --- |
-| ![知识库截图](docs/assets/screenshots/knowledge-base.png) | ![RAG 引用与 diagnostics 截图](docs/assets/screenshots/rag-citations-diagnostics.png) |
-
-| 合同审查 | pgvector health 与评测报告 |
-| --- | --- |
-| ![合同审查截图](docs/assets/screenshots/contract-review.png) | ![质量面板截图](docs/assets/screenshots/quality-panel.png) |
-
-The web workbench has four main surfaces:
-
-- **Knowledge Base**: import text/files, seed the public-safe dataset, view documents and chunks.
-- **Q&A**: ask legal or contract questions and inspect citations plus retrieval diagnostics.
-- **Contract Review**: submit text or a document and get structured risk findings.
-- **Quality Panel**: inspect runtime mode, pgvector readiness, RAG eval, review eval, and recent quality trends.
+| Knowledge Base | Import text/files, seed the public-safe dataset, view documents and chunks. |
+| Q&A | Ask legal or contract questions and inspect citations plus retrieval diagnostics. |
+| Contract Review | Submit text or a document and get structured risk findings. |
+| Quality Panel | Inspect runtime mode, pgvector readiness, RAG eval, review eval, and recent quality trends. |
 
 ## What It Does
 
