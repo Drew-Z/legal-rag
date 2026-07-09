@@ -2,6 +2,8 @@
 
 法律文档问答与合同风险审查工作台。项目提供从文档导入、公开安全数据集初始化、chunk/embedding、混合检索、引用溯源问答、合同审查到质量评测面板的一套完整 RAG 工程示例。
 
+简体中文文档：[README.zh-CN.md](README.zh-CN.md)
+
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6)
 ![Vue](https://img.shields.io/badge/Vue-3.5-42b883)
 ![Express](https://img.shields.io/badge/Express-5.2-111111)
