@@ -118,4 +118,4 @@ npm --workspace apps/api run validate:pgvector
 
 ## 许可证
 
-当前仓库还没有独立许可证文件。正式作为可复用开源项目推广前，需要选择并添加许可证。
+当前仓库使用 [Apache License 2.0](LICENSE) 许可证。

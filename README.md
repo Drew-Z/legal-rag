@@ -318,4 +318,4 @@ CI currently runs typecheck, API unit tests, API validation, RAG evaluation, con
 
 ## License
 
-No license file is currently included. Choose and add a license before presenting the repository as reusable open-source software.
+This repository is licensed under the [Apache License 2.0](LICENSE).
